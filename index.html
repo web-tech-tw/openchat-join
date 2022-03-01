@@ -18,22 +18,21 @@
       }
     </style>
     <script>
-      $(() => {
+      $(async () => {
+        let registerSecret = localStorage.getItem("registerSecret");
         let registerCode = localStorage.getItem("registerCode");
-        if (!registerCode) {
-          registerCode = "";
-          const charset =
-            "abcdefghijklmnopqrstuvwxyz0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ";
-          for (let i = 0; i < 32; ++i) {
-            registerCode += charset.charAt(
-              Math.floor(Math.random() * charset.length)
-            );
-          }
+        if (!registerCode || !registerSecret) {
+          const data = await $.get(
+            "https://script.google.com/macros/s/AKfycbzIMVZd5eb0RCLSo_9Pcc4A738nLpapoUA61I3GtVa70Ynp6ag-X8-N091WSED22Q8/exec"
+          );
+          registerSecret = data.secret;
+          registerCode = data.code;
+          localStorage.setItem("registerSecret", registerSecret);
           localStorage.setItem("registerCode", registerCode);
         }
         $("#copy").click(() => {
           navigator.clipboard
-            .writeText(registerCode)
+            .writeText(registerSecret)
             .then(() => {
               console.log("Text copied to clipboard...");
             })
@@ -42,10 +41,10 @@
             });
         });
         $("#submit").click(() => {
-          localStorage.removeItem("registerCode");
+          localStorage.clear();
           location.href = `https://line.me/R/share?text=${registerCode}`;
         });
-        $("#secret").text(registerCode);
+        $("#secret").text(registerSecret);
         $("#code").text(registerCode);
       });
     </script>
