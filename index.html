@@ -1,52 +1,120 @@
 <!DOCTYPE html>
 <html lang="en">
-
-<head>
-    <meta charset="UTF-8">
-    <meta http-equiv="X-UA-Compatible" content="IE=edge">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Document</title>
-    <script charset="utf-8" src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+  <head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>OpenChat 共同管理員 驗證系統 - 臺灣網際網路技術推廣組織</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script
+      charset="utf-8"
+      src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"
+    ></script>
+    <style>
+      html,
+      body {
+        height: 100%;
+        margin: 0;
+      }
+    </style>
     <script>
-        $(() => {
-            let registerCode = localStorage.getItem("registerCode");
-            if (!registerCode) {
-                registerCode = "";
-                const charset = "abcdefghijklmnopqrstuvwxyz0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ";
-                for (let i = 0; i < 32; ++i) {
-                    registerCode += charset.charAt(Math.floor(Math.random() * charset.length));
-                }
-                localStorage.setItem("registerCode", registerCode);
-            }
-            $("#copy").click(() => {
-                navigator.clipboard.writeText(registerCode)
-                    .then(() => {
-                        console.log("Text copied to clipboard...")
-                    })
-                    .catch(err => {
-                        console.log('Something went wrong', err);
-                    })
+      $(() => {
+        let registerCode = localStorage.getItem("registerCode");
+        if (!registerCode) {
+          registerCode = "";
+          const charset =
+            "abcdefghijklmnopqrstuvwxyz0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+          for (let i = 0; i < 32; ++i) {
+            registerCode += charset.charAt(
+              Math.floor(Math.random() * charset.length)
+            );
+          }
+          localStorage.setItem("registerCode", registerCode);
+        }
+        $("#copy").click(() => {
+          navigator.clipboard
+            .writeText(registerCode)
+            .then(() => {
+              console.log("Text copied to clipboard...");
+            })
+            .catch((err) => {
+              console.log("Something went wrong", err);
             });
-            $("#submit").click(() => {
-                localStorage.removeItem("registerCode");
-                location.href = `https://line.me/R/share?text=${registerCode}`;
-            });
-            $("#code").text(registerCode);
         });
+        $("#submit").click(() => {
+          localStorage.removeItem("registerCode");
+          location.href = `https://line.me/R/share?text=${registerCode}`;
+        });
+        $("#secret").text(registerCode);
+        $("#code").text(registerCode);
+      });
     </script>
-</head>
+  </head>
 
-<body>
-    OpenChat 共同管理員 驗證系統
-    <div>
-        您的代號：<span id="code"></span>
+  <body>
+    <div class="h-full pt-5 bg-gradient-to-r from-sky-500 to-indigo-500">
+      <div
+        class="mb-5 p-6 max-w-sm mx-auto bg-white rounded-xl shadow-lg flex items-center space-x-4"
+      >
+        <div>
+          <div class="text-xl font-medium text-black">
+            OpenChat 共同管理員 驗證系統
+          </div>
+          <p class="text-slate-500">臺灣網際網路技術推廣組織 提供</p>
+        </div>
+      </div>
+      <div
+        class="mb-5 p-6 max-w-sm mx-auto bg-white rounded-xl shadow-lg flex items-center space-x-4"
+      >
+        <div>
+          <div class="text-xl font-medium text-slate-700">流程說明</div>
+          <div class="ml-5 text-slate-600">
+            <ol class="list-decimal">
+              <li>取得驗證代號</li>
+              <li>將您的代號填入入群問題回覆</li>
+              <li>回傳驗證訊息到您持有共管權限的聊天室內</li>
+            </ol>
+          </div>
+        </div>
+      </div>
+      <div
+        class="mb-5 p-6 max-w-sm mx-auto bg-white rounded-xl shadow-lg flex items-center space-x-4"
+      >
+        <div>
+          <div class="text-xl font-medium text-slate-700">您的代號</div>
+          <p id="secret" class="text-slate-500">載入中...</p>
+          <div class="text-l font-medium text-slate-600">
+            （請填入管理社群的入群問題回答內）
+          </div>
+        </div>
+        <div>
+          <button
+            id="copy"
+            class="px-4 py-2 font-semibold text-sm bg-cyan-500 text-white rounded-full shadow-sm"
+          >
+            複製代號
+          </button>
+        </div>
+      </div>
+      <div
+        class="mb-5 p-6 max-w-sm mx-auto bg-white rounded-xl shadow-lg flex items-center space-x-4"
+      >
+        <div>
+          <div class="text-xl font-medium text-slate-700">驗證訊息</div>
+          <p id="code" class="text-slate-500">載入中...</p>
+          <div class="text-l font-medium text-slate-600">
+            （請回傳驗證訊息到聊天室內）
+          </div>
+        </div>
+        <div>
+          <button
+            id="submit"
+            class="mx-auto px-4 py-2 font-semibold text-sm bg-cyan-500 text-white rounded-full shadow-sm"
+          >
+            傳送到聊天室
+          </button>
+        </div>
+      </div>
     </div>
-    <div>
-        <button id="copy">複製</button>
-    </div>
-    <div>
-        <button id="submit">傳送到聊天室</button>
-    </div>
-</body>
-
+  </body>
 </html>
