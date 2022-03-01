@@ -7,30 +7,45 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Document</title>
     <script charset="utf-8" src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
-    <script charset="utf-8" src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
     <script>
         $(() => {
-            liff.init({
-                    liffId: '1656932973-WKa0qK9X',
-                })
-                .then(() => {
-                    const userData = liff.getDecodedIDToken();
-                    console.log(userData);
-                })
-                .catch((err) => {
-                    console.log(err);
-                });
-            $("#login").click(() => {
-                liff.login();
-            })
+            let registerCode = localStorage.getItem("registerCode");
+            if (!registerCode) {
+                registerCode = "";
+                const charset = "abcdefghijklmnopqrstuvwxyz0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+                for (let i = 0; i < 32; ++i) {
+                    registerCode += charset.charAt(Math.floor(Math.random() * charset.length));
+                }
+                localStorage.setItem("registerCode", registerCode);
+            }
+            $("#copy").click(() => {
+                navigator.clipboard.writeText(registerCode)
+                    .then(() => {
+                        console.log("Text copied to clipboard...")
+                    })
+                    .catch(err => {
+                        console.log('Something went wrong', err);
+                    })
+            });
+            $("#submit").click(() => {
+                localStorage.removeItem("registerCode");
+                location.href = `https://line.me/R/share?text=${registerCode}`;
+            });
+            $("#code").text(registerCode);
         });
     </script>
 </head>
 
 <body>
-    openchat-admin_verify
+    OpenChat 共同管理員 驗證系統
     <div>
-        <button id="login">Login</button>
+        您的代號：<span id="code"></span>
+    </div>
+    <div>
+        <button id="copy">複製</button>
+    </div>
+    <div>
+        <button id="submit">傳送到聊天室</button>
     </div>
 </body>
 
