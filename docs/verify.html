@@ -22,8 +22,10 @@
         if (cachePass) {
           $("#pass").val(cachePass);
         }
-        $("#submit").click(() => {
+        $("#pass").change(() => {
           localStorage.setItem("pass", $("#pass").val());
+        });
+        $("#submit").click(() => {
           $.post(
             "https://script.google.com/macros/s/AKfycbzIMVZd5eb0RCLSo_9Pcc4A738nLpapoUA61I3GtVa70Ynp6ag-X8-N091WSED22Q8/exec",
             {
