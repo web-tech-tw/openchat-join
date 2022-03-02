@@ -46,10 +46,10 @@
           navigator.clipboard
             .writeText(registerSecret)
             .then(() => {
-              alert("Code copied to clipboard");
+              alert("已複製到剪貼簿");
             })
             .catch((err) => {
-              alert("Something went wrong", err);
+              alert("複製到剪貼簿時發生錯誤", err);
             });
         });
         $("#submit").click(() => {
@@ -57,7 +57,7 @@
           navigator.clipboard
             .writeText(registerCode)
             .then(() => {
-              alert("Code copied to clipboard");
+              alert("已複製到剪貼簿");
               if (isMobile) {
                 location.href = `https://line.me/R/share?text=${registerCode}`;
               } else {
@@ -65,7 +65,7 @@
               }
             })
             .catch((err) => {
-              alert("Something went wrong", err);
+              alert("複製到剪貼簿時發生錯誤", err);
             });
         });
         $("#submit").text(isMobile ? "傳送到聊天室" : "複製驗證訊息");
