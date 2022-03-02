@@ -16,6 +16,22 @@
         margin: 0;
       }
     </style>
+    <script>
+      $(() => {
+        $("#submit").click(() => {
+          $.post(
+            "https://script.google.com/macros/s/AKfycbzIMVZd5eb0RCLSo_9Pcc4A738nLpapoUA61I3GtVa70Ynp6ag-X8-N091WSED22Q8/exec",
+            {
+              pass: $("#pass").val(),
+              code: $("#code").val(),
+            },
+            (data) => {
+              $("#result").text(data.secret || "error occurred");
+            }
+          );
+        });
+      });
+    </script>
   </head>
 
   <body>
@@ -33,7 +49,7 @@
           <div class="md:w-2/3">
             <input
               class="bg-gray-200 appearance-none border-2 border-gray-200 rounded w-full py-2 px-4 text-gray-700 leading-tight focus:outline-none focus:bg-white focus:border-purple-500"
-              id="inline-full-name"
+              id="pass"
               type="text"
               placeholder="your_pass"
             />
@@ -51,7 +67,7 @@
           <div class="md:w-2/3">
             <input
               class="bg-gray-200 appearance-none border-2 border-gray-200 rounded w-full py-2 px-4 text-gray-700 leading-tight focus:outline-none focus:bg-white focus:border-purple-500"
-              id="inline-password"
+              id="code"
               type="text"
               placeholder="user_code"
             />
@@ -61,6 +77,7 @@
           <div class="md:w-1/3"></div>
           <div class="md:w-2/3">
             <button
+              id="submit"
               class="shadow bg-purple-500 hover:bg-purple-400 focus:shadow-outline focus:outline-none text-white font-bold py-2 px-4 rounded"
               type="button"
             >
@@ -71,7 +88,7 @@
         <div class="md:flex md:items-center my-6">
           <div class="md:w-1/3"></div>
           <label class="md:w-2/3 block text-gray-500 font-bold">
-            <span class="text-sm"></span>
+            <span id="result" class="text-sm"></span>
           </label>
         </div>
       </form>
