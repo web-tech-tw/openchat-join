@@ -18,7 +18,12 @@
     </style>
     <script>
       $(() => {
+        const cachePass = localStorage.getItem("pass");
+        if (cachePass) {
+          $("#pass").val(cachePass);
+        }
         $("#submit").click(() => {
+          localStorage.setItem("pass", $("#pass").val());
           $.post(
             "https://script.google.com/macros/s/AKfycbzIMVZd5eb0RCLSo_9Pcc4A738nLpapoUA61I3GtVa70Ynp6ag-X8-N091WSED22Q8/exec",
             {
