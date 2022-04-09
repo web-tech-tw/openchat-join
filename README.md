@@ -1,3 +1,3 @@
-# openchat-admin_verify
+# openchat-join
 
-OpenChat 共同管理員 驗證系統
+OpenChat 加入驗證系統
