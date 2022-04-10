@@ -14,7 +14,8 @@ const
         hash_secret: require('./src/init/hash_secret')
     },
     util = {
-        hash: require('./src/utils/hash')
+        hash: require('./src/utils/hash'),
+        code: require('./src/utils/code')
     },
     schema = {
         application: require("./src/schemas/application"),
@@ -42,23 +43,31 @@ app.post('/room', async (req, res) => {
 });
 
 app.post('/application', async (req, res) => {
-    if (!(req?.body?.room_id)) {
+    if (!(req?.body?.display_name)) {
         res.sendStatus(http_status.BAD_REQUEST);
         return;
     }
     const Room = ctx.database.model('Room', schema.room);
-    const room = await Room.findOne({_id: req.body.room_id});
-    if (!room) {
+    const room_id = util.hash(ctx, req.body.display_name, 24);
+    if (!await Room.findOne({_id: room_id})) {
         res.sendStatus(http_status.NOT_FOUND);
         return;
     }
     const Application = ctx.database.model('Application', schema.application);
+    const ip_address = req?.clientIp || req.ip;
+    const code_data = `${room_id}_${ip_address}`;
+    const application_id = util.hash(ctx, code_data, 24);
+    if (await Application.findOne({_id: application_id})) {
+        res.sendStatus(http_status.CONFLICT);
+        return;
+    }
     const metadata = {
-        code: "",
-        room_id: room._id,
+        _id: application_id,
+        room_id: room_id,
         user_agent: req.useragent,
-        ip_address: req?.clientIp || req.ip,
-        created_at: ctx.now()
+        created_at: ctx.now(),
+        code: util.code.generateCode(ctx, util, code_data),
+        ip_address
     };
     const application = await (new Application(metadata)).save();
     res.status(http_status.CREATED).send(application);
