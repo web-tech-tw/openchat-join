@@ -54,9 +54,11 @@ app.post('/application', async (req, res) => {
         return;
     }
     const Application = ctx.database.model('Application', schema.application);
+    const user_agent = req.header('User-Agent') || 'Unknown';
     const ip_address = req?.clientIp || req.ip;
-    const code_data = `${room_id}_${ip_address}`;
+    const code_data = `${room_id}_${ip_address}|${user_agent}`;
     const application_id = util.hash(ctx, code_data, 24);
+    const code = util.code.generateCode(ctx, util, code_data);
     if (await Application.findOne({_id: application_id})) {
         res.sendStatus(http_status.CONFLICT);
         return;
@@ -64,10 +66,10 @@ app.post('/application', async (req, res) => {
     const metadata = {
         _id: application_id,
         room_id: room_id,
-        user_agent: req.useragent,
-        created_at: ctx.now(),
-        code: util.code.generateCode(ctx, util, code_data),
-        ip_address
+        code,
+        user_agent,
+        ip_address,
+        created_at: ctx.now()
     };
     const application = await (new Application(metadata)).save();
     res.status(http_status.CREATED).send(application);
