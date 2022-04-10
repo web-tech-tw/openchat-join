@@ -7,6 +7,7 @@ const ObjectId = Schema.ObjectId;
 
 module.exports = new Schema({
     id: ObjectId,
+    code: String,
     room_id: String,
     user_agent: String,
     ip_address: String,
