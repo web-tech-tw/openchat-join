@@ -63,14 +63,7 @@ app.post('/application', async (req, res) => {
         res.sendStatus(http_status.CONFLICT);
         return;
     }
-    const metadata = {
-        _id: application_id,
-        room_id: room_id,
-        code,
-        user_agent,
-        ip_address,
-        created_at: ctx.now()
-    };
+    const metadata = {_id: application_id, room_id, code, user_agent, ip_address, created_at: ctx.now()};
     const application = await (new Application(metadata)).save();
     res.status(http_status.CREATED).send(application);
 });
