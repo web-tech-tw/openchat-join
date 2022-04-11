@@ -22,7 +22,7 @@ const
         room: require("./src/schemas/room")
     },
     middleware = {
-        access: require('./src/utils/access'),
+        access: require('./src/middlewares/access'),
     };
 
 const app = require('./src/init/express')(ctx);
