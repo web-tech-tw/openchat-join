@@ -14,7 +14,10 @@ const
     },
     util = {
         hash: require('./src/utils/hash'),
-        code: require('./src/utils/code')
+        code: require('./src/utils/code'),
+        access: require('./src/utils/access'),
+        permission: require('./src/utils/permission'),
+        ip_address: require('./src/utils/ip_address')
     },
     schema = {
         application: require("./src/schemas/application"),
@@ -27,7 +30,7 @@ app.get('/', (req, res) => {
     res.redirect(http_status.MOVED_PERMANENTLY, process.env.WEBSITE_URL);
 });
 
-app.post('/room', async (req, res) => {
+app.post('/room', util.access, async (req, res) => {
     if (!(req?.body?.display_name)) {
         res.sendStatus(http_status.BAD_REQUEST);
         return;
@@ -56,7 +59,7 @@ app.post('/application', async (req, res) => {
     }
     const Application = ctx.database.model('Application', schema.application);
     const user_agent = req.header('User-Agent') || 'Unknown';
-    const ip_address = req?.clientIp || req.ip;
+    const ip_address = util.ip_address(req);
     const code_data = `${room_id}_${ip_address}|${user_agent}`;
     const application_id = util.hash(ctx, code_data, 24);
     const code = util.code.generateCode(ctx, util, code_data);
