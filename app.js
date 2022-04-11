@@ -32,28 +32,28 @@ app.get('/', (req, res) => {
 });
 
 app.post('/room', middleware.access('admin'), async (req, res) => {
-    if (!(req?.body?.display_name)) {
+    if (!(req?.body?.slug)) {
         res.sendStatus(http_status.BAD_REQUEST);
         return;
     }
     const Room = ctx.database.model('Room', schema.room);
-    const room_id = util.hash(ctx, req.body.display_name, 24);
+    const room_id = util.hash(ctx, req.body.slug, 24);
     if (await Room.findOne({_id: room_id})) {
         res.sendStatus(http_status.CONFLICT);
         return;
     }
-    const metadata = {_id: room_id, display_name: req.body.display_name};
+    const metadata = {_id: room_id, slug: req.body.slug};
     const room = await (new Room(metadata)).save();
     res.status(http_status.CREATED).send(room);
 });
 
 app.post('/application', async (req, res) => {
-    if (!(req?.body?.display_name)) {
+    if (!(req?.body?.slug)) {
         res.sendStatus(http_status.BAD_REQUEST);
         return;
     }
     const Room = ctx.database.model('Room', schema.room);
-    const room_id = util.hash(ctx, req.body.display_name, 24);
+    const room_id = util.hash(ctx, req.body.slug, 24);
     if (!await Room.findOne({_id: room_id})) {
         res.sendStatus(http_status.NOT_FOUND);
         return;
