@@ -15,13 +15,14 @@ const
     util = {
         hash: require('./src/utils/hash'),
         code: require('./src/utils/code'),
-        access: require('./src/utils/access'),
-        permission: require('./src/utils/permission'),
         ip_address: require('./src/utils/ip_address')
     },
     schema = {
         application: require("./src/schemas/application"),
         room: require("./src/schemas/room")
+    },
+    middleware = {
+        access: require('./src/utils/access'),
     };
 
 const app = require('./src/init/express')(ctx);
@@ -30,7 +31,7 @@ app.get('/', (req, res) => {
     res.redirect(http_status.MOVED_PERMANENTLY, process.env.WEBSITE_URL);
 });
 
-app.post('/room', util.access, async (req, res) => {
+app.post('/room', middleware.access('admin'), async (req, res) => {
     if (!(req?.body?.display_name)) {
         res.sendStatus(http_status.BAD_REQUEST);
         return;
