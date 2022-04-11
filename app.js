@@ -47,6 +47,25 @@ app.post('/room', middleware.access('admin'), async (req, res) => {
     res.status(http_status.CREATED).send(room);
 });
 
+app.get('/applications', util.access('openchat'), async (req, res) => {
+    const Application = ctx.database.model('Application', schema.application);
+    res.send(await Application.find());
+});
+
+app.get('/application', util.access('openchat'), async (req, res) => {
+    if (!(req?.body?.code)) {
+        res.sendStatus(http_status.BAD_REQUEST);
+        return;
+    }
+    const Application = ctx.database.model('Application', schema.application);
+    const application = await Application.findOne({code: req.body.code}).exec();
+    if (application) {
+        res.send(application);
+    } else {
+        res.sendStatus(http_status.NOT_FOUND);
+    }
+});
+
 app.post('/application', async (req, res) => {
     if (!(req?.body?.slug)) {
         res.sendStatus(http_status.BAD_REQUEST);
@@ -71,6 +90,33 @@ app.post('/application', async (req, res) => {
     const metadata = {_id: application_id, room_id, code, user_agent, ip_address, created_at: ctx.now()};
     const application = await (new Application(metadata)).save();
     res.status(http_status.CREATED).send(application);
+});
+
+app.patch('/application', util.access('openchat'), async (req, res) => {
+    if (!(req?.body?.code)) {
+        res.sendStatus(http_status.BAD_REQUEST);
+        return;
+    }
+    const Application = ctx.database.model('Application', schema.application);
+    const metadata = {approval_by: req.authenticated.sub, approval_at: ctx.now()};
+    if (await Application.findOneAndUpdate({code: req.body.code}, metadata)) {
+        res.sendStatus(http_status.CREATED);
+    } else {
+        res.sendStatus(http_status.NOT_FOUND);
+    }
+});
+
+app.delete('/application', util.access('openchat'), async (req, res) => {
+    if (!(req?.body?.code)) {
+        res.sendStatus(http_status.BAD_REQUEST);
+        return;
+    }
+    const Application = ctx.database.model('Application', schema.application);
+    if (await Application.findOneAndDelete({code: req.body.code})) {
+        res.sendStatus(http_status.OK);
+    } else {
+        res.sendStatus(http_status.NOT_FOUND);
+    }
 });
 
 app.listen(process.env.HTTP_PORT, process.env.HTTP_HOSTNAME, () => {

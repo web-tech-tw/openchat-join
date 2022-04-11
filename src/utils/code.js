@@ -1,6 +1,6 @@
-function generateCode(ctx, util, code_data, prefix = 0) {
+function generateCode(ctx, util, code_data) {
     const datetime = new Date();
-    const date_string = `${datetime.getMonth()}_${datetime.getDate() + prefix}`;
+    const date_string = datetime.toLocaleDateString();
     return util.hash(ctx, `${date_string}_${code_data}`, 6);
 }
 
