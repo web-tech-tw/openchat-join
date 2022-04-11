@@ -5,7 +5,6 @@ require('dotenv').config();
 const http_status = require('http-status-codes');
 
 const
-    app = require('./src/init/express'),
     constant = require('./src/init/const'),
     ctx = {
         now: () => Math.floor(new Date().getTime() / 1000),
@@ -15,18 +14,24 @@ const
     },
     util = {
         hash: require('./src/utils/hash'),
-        code: require('./src/utils/code')
+        code: require('./src/utils/code'),
+        ip_address: require('./src/utils/ip_address')
     },
     schema = {
         application: require("./src/schemas/application"),
         room: require("./src/schemas/room")
+    },
+    middleware = {
+        access: require('./src/middlewares/access'),
     };
+
+const app = require('./src/init/express')(ctx);
 
 app.get('/', (req, res) => {
     res.redirect(http_status.MOVED_PERMANENTLY, process.env.WEBSITE_URL);
 });
 
-app.post('/room', async (req, res) => {
+app.post('/room', middleware.access('admin'), async (req, res) => {
     if (!(req?.body?.display_name)) {
         res.sendStatus(http_status.BAD_REQUEST);
         return;
@@ -55,7 +60,7 @@ app.post('/application', async (req, res) => {
     }
     const Application = ctx.database.model('Application', schema.application);
     const user_agent = req.header('User-Agent') || 'Unknown';
-    const ip_address = req?.clientIp || req.ip;
+    const ip_address = util.ip_address(req);
     const code_data = `${room_id}_${ip_address}|${user_agent}`;
     const application_id = util.hash(ctx, code_data, 24);
     const code = util.code.generateCode(ctx, util, code_data);

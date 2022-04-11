@@ -3,13 +3,18 @@
 const express = require('express');
 const request_ip = require('request-ip');
 
-const app = express();
-app.use(express.urlencoded({extended: true}));
-app.use(request_ip.mw());
+module.exports = (ctx) => {
+    const auth = require('../middlewares/auth')(ctx);
 
-if (process.env.HTTP_CORS === 'yes') {
-    const cors = require('cors');
-    app.use(cors({origin: process.env.WEBSITE_URL}));
-}
+    const app = express();
+    app.use(express.urlencoded({extended: true}));
+    app.use(request_ip.mw());
+    app.use(auth);
 
-module.exports = app;
+    if (process.env.HTTP_CORS === 'yes') {
+        const cors = require('cors');
+        app.use(cors({origin: process.env.WEBSITE_URL}));
+    }
+
+    return app;
+};
