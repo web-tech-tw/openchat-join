@@ -5,7 +5,6 @@ require('dotenv').config();
 const http_status = require('http-status-codes');
 
 const
-    app = require('./src/init/express'),
     constant = require('./src/init/const'),
     ctx = {
         now: () => Math.floor(new Date().getTime() / 1000),
@@ -21,6 +20,8 @@ const
         application: require("./src/schemas/application"),
         room: require("./src/schemas/room")
     };
+
+const app = require('./src/init/express')(ctx);
 
 app.get('/', (req, res) => {
     res.redirect(http_status.MOVED_PERMANENTLY, process.env.WEBSITE_URL);
