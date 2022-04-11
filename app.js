@@ -10,7 +10,7 @@ const
         now: () => Math.floor(new Date().getTime() / 1000),
         cache: require('./src/init/cache'),
         database: require('./src/init/database'),
-        hash_secret: require('./src/init/hash_secret')
+        jwt_secret: require('./src/init/jwt_secret')
     },
     util = {
         hash: require('./src/utils/hash'),
