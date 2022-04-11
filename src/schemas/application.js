@@ -12,6 +12,6 @@ module.exports = new Schema({
     user_agent: String,
     ip_address: String,
     created_at: Number,
-    approval_by: String|null,
+    approval_by: String | null,
     approval_at: Number
 });
