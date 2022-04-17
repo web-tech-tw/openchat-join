@@ -47,18 +47,13 @@ app.post('/room', middleware.access('admin'), async (req, res) => {
     res.status(http_status.CREATED).send(room);
 });
 
-app.get('/applications', middleware.access('openchat'), async (req, res) => {
-    const Application = ctx.database.model('Application', schema.application);
-    res.send(await Application.find());
-});
-
 app.get('/application', middleware.access('openchat'), async (req, res) => {
     if (!(req?.query?.code)) {
         res.sendStatus(http_status.BAD_REQUEST);
         return;
     }
     const Application = ctx.database.model('Application', schema.application);
-    const application = await Application.findOne({code: req.body.code}).exec();
+    const application = await Application.findOne({code: req.query.code}).exec();
     if (application) {
         res.send(application);
     } else {
@@ -94,13 +89,13 @@ app.post('/application', async (req, res) => {
 });
 
 app.patch('/application', middleware.access('openchat'), async (req, res) => {
-    if (!(req?.body?.code)) {
+    if (!(req?.query?.code)) {
         res.sendStatus(http_status.BAD_REQUEST);
         return;
     }
     const Application = ctx.database.model('Application', schema.application);
     const metadata = {approval_by: req.authenticated.sub, approval_at: ctx.now()};
-    if (await Application.findOneAndUpdate({code: req.body.code}, metadata)) {
+    if (await Application.findOneAndUpdate({code: req.query.code}, metadata)) {
         res.sendStatus(http_status.CREATED);
     } else {
         res.sendStatus(http_status.NOT_FOUND);
@@ -108,12 +103,12 @@ app.patch('/application', middleware.access('openchat'), async (req, res) => {
 });
 
 app.delete('/application', middleware.access('openchat'), async (req, res) => {
-    if (!(req?.body?.code)) {
+    if (!(req?.query?.code)) {
         res.sendStatus(http_status.BAD_REQUEST);
         return;
     }
     const Application = ctx.database.model('Application', schema.application);
-    if (await Application.findOneAndDelete({code: req.body.code})) {
+    if (await Application.findOneAndDelete({code: req.query.code})) {
         res.sendStatus(http_status.OK);
     } else {
         res.sendStatus(http_status.NOT_FOUND);
