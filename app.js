@@ -47,12 +47,12 @@ app.post('/room', middleware.access('admin'), async (req, res) => {
     res.status(http_status.CREATED).send(room);
 });
 
-app.get('/applications', util.access('openchat'), async (req, res) => {
+app.get('/applications', middleware.access('openchat'), async (req, res) => {
     const Application = ctx.database.model('Application', schema.application);
     res.send(await Application.find());
 });
 
-app.get('/application', util.access('openchat'), async (req, res) => {
+app.get('/application', middleware.access('openchat'), async (req, res) => {
     if (!(req?.body?.code)) {
         res.sendStatus(http_status.BAD_REQUEST);
         return;
@@ -92,7 +92,7 @@ app.post('/application', async (req, res) => {
     res.status(http_status.CREATED).send(application);
 });
 
-app.patch('/application', util.access('openchat'), async (req, res) => {
+app.patch('/application', middleware.access('openchat'), async (req, res) => {
     if (!(req?.body?.code)) {
         res.sendStatus(http_status.BAD_REQUEST);
         return;
@@ -106,7 +106,7 @@ app.patch('/application', util.access('openchat'), async (req, res) => {
     }
 });
 
-app.delete('/application', util.access('openchat'), async (req, res) => {
+app.delete('/application', middleware.access('openchat'), async (req, res) => {
     if (!(req?.body?.code)) {
         res.sendStatus(http_status.BAD_REQUEST);
         return;
