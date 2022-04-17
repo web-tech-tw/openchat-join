@@ -82,11 +82,12 @@ app.post('/application', async (req, res) => {
     const ip_address = util.ip_address(req);
     const code_data = `${room_id}_${ip_address}|${user_agent}`;
     const application_id = util.hash(ctx, code_data, 24);
-    const code = util.code.generateCode(ctx, util, code_data);
-    if (await Application.findOne({_id: application_id})) {
-        res.sendStatus(http_status.CONFLICT);
+    const exist_application = await Application.findOne({_id: application_id}).exec();
+    if (exist_application) {
+        res.status(http_status.CONFLICT).send(exist_application);
         return;
     }
+    const code = util.code.generateCode(ctx, util, code_data);
     const metadata = {_id: application_id, room_id, code, user_agent, ip_address, created_at: ctx.now()};
     const application = await (new Application(metadata)).save();
     res.status(http_status.CREATED).send(application);
