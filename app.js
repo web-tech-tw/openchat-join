@@ -53,7 +53,7 @@ app.get('/applications', middleware.access('openchat'), async (req, res) => {
 });
 
 app.get('/application', middleware.access('openchat'), async (req, res) => {
-    if (!(req?.body?.code)) {
+    if (!(req?.query?.code)) {
         res.sendStatus(http_status.BAD_REQUEST);
         return;
     }
