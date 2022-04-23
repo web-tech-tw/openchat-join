@@ -31,6 +31,12 @@ app.get('/', (req, res) => {
     res.redirect(http_status.MOVED_PERMANENTLY, process.env.WEBSITE_URL);
 });
 
+app.get('/admin-room', middleware.access('openchat'), (req, res) => {
+    const url = process.env.OPENCHAT_ADMIN_ROOM_URL;
+    const password = process.env.OPENCHAT_ADMIN_ROOM_PASSWORD;
+    res.send({url, password});
+});
+
 app.post('/room', middleware.access('admin'), async (req, res) => {
     if (!(req?.body?.slug)) {
         res.sendStatus(http_status.BAD_REQUEST);
