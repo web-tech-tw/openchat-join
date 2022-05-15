@@ -2,7 +2,7 @@
 
 require('dotenv').config();
 
-const http_status = require('http-status-codes');
+const { StatusCodes } = require('http-status-codes');
 
 const
     constant = require('./src/init/const'),
@@ -28,7 +28,7 @@ const
 const app = require('./src/init/express')(ctx);
 
 app.get('/', (req, res) => {
-    res.redirect(http_status.MOVED_PERMANENTLY, process.env.WEBSITE_URL);
+    res.redirect(StatusCodes.MOVED_PERMANENTLY, process.env.WEBSITE_URL);
 });
 
 app.get('/admin-room', middleware.access('openchat'), (req, res) => {
@@ -39,23 +39,23 @@ app.get('/admin-room', middleware.access('openchat'), (req, res) => {
 
 app.post('/room', middleware.access('admin'), async (req, res) => {
     if (!(req?.body?.slug)) {
-        res.sendStatus(http_status.BAD_REQUEST);
+        res.sendStatus(StatusCodes.BAD_REQUEST);
         return;
     }
     const Room = ctx.database.model('Room', schema.room);
     const room_id = util.hash(ctx, req.body.slug, 24);
     if (await Room.findOne({_id: room_id})) {
-        res.sendStatus(http_status.CONFLICT);
+        res.sendStatus(StatusCodes.CONFLICT);
         return;
     }
     const metadata = {_id: room_id, slug: req.body.slug};
     const room = await (new Room(metadata)).save();
-    res.status(http_status.CREATED).send(room);
+    res.status(StatusCodes.CREATED).send(room);
 });
 
 app.get('/application', middleware.access('openchat'), async (req, res) => {
     if (!(req?.query?.code)) {
-        res.sendStatus(http_status.BAD_REQUEST);
+        res.sendStatus(StatusCodes.BAD_REQUEST);
         return;
     }
     const Application = ctx.database.model('Application', schema.application);
@@ -63,19 +63,19 @@ app.get('/application', middleware.access('openchat'), async (req, res) => {
     if (application) {
         res.send(application);
     } else {
-        res.sendStatus(http_status.NOT_FOUND);
+        res.sendStatus(StatusCodes.NOT_FOUND);
     }
 });
 
 app.post('/application', async (req, res) => {
     if (!(req?.body?.slug)) {
-        res.sendStatus(http_status.BAD_REQUEST);
+        res.sendStatus(StatusCodes.BAD_REQUEST);
         return;
     }
     const Room = ctx.database.model('Room', schema.room);
     const room_id = util.hash(ctx, req.body.slug, 24);
     if (!await Room.findOne({_id: room_id})) {
-        res.sendStatus(http_status.NOT_FOUND);
+        res.sendStatus(StatusCodes.NOT_FOUND);
         return;
     }
     const Application = ctx.database.model('Application', schema.application);
@@ -85,39 +85,39 @@ app.post('/application', async (req, res) => {
     const application_id = util.hash(ctx, code_data, 24);
     const exist_application = await Application.findOne({_id: application_id}).exec();
     if (exist_application) {
-        res.status(http_status.CONFLICT).send(exist_application);
+        res.status(StatusCodes.CONFLICT).send(exist_application);
         return;
     }
     const code = util.code.generateCode(ctx, util, code_data);
     const metadata = {_id: application_id, room_id, code, user_agent, ip_address, created_at: ctx.now()};
     const application = await (new Application(metadata)).save();
-    res.status(http_status.CREATED).send(application);
+    res.status(StatusCodes.CREATED).send(application);
 });
 
 app.patch('/application', middleware.access('openchat'), async (req, res) => {
     if (!(req?.query?.code)) {
-        res.sendStatus(http_status.BAD_REQUEST);
+        res.sendStatus(StatusCodes.BAD_REQUEST);
         return;
     }
     const Application = ctx.database.model('Application', schema.application);
     const metadata = {approval_by: req.authenticated.sub, approval_at: ctx.now()};
     if (await Application.findOneAndUpdate({code: req.query.code}, metadata)) {
-        res.sendStatus(http_status.CREATED);
+        res.sendStatus(StatusCodes.CREATED);
     } else {
-        res.sendStatus(http_status.NOT_FOUND);
+        res.sendStatus(StatusCodes.NOT_FOUND);
     }
 });
 
 app.delete('/application', middleware.access('openchat'), async (req, res) => {
     if (!(req?.query?.code)) {
-        res.sendStatus(http_status.BAD_REQUEST);
+        res.sendStatus(StatusCodes.BAD_REQUEST);
         return;
     }
     const Application = ctx.database.model('Application', schema.application);
     if (await Application.findOneAndDelete({code: req.query.code})) {
-        res.sendStatus(http_status.OK);
+        res.sendStatus(StatusCodes.OK);
     } else {
-        res.sendStatus(http_status.NOT_FOUND);
+        res.sendStatus(StatusCodes.NOT_FOUND);
     }
 });
 
