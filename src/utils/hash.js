@@ -4,9 +4,9 @@ const {sha256} = require("js-sha256");
 
 /**
  * Hash data.
- * @param {object} ctx - The context variable from app.js
- * @param {string} data - The data to mixin with jwt_secret
- * @param {number} [sub] - The length to extract
+ * @param {object} ctx - The context variable from app.js.
+ * @param {string} data - The data to mixin with jwt_secret.
+ * @param {number} [sub] - Length of result to extract.
  * @return {string}
  */
 function hash(ctx, data, sub = 0) {

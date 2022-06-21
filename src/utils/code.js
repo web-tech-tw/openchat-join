@@ -4,8 +4,8 @@ const hash = require("./hash");
 
 /**
  * Generate a code with data and datetime.
- * @param {object} ctx - The context variable from app.js
- * @param {string} data the data to mixin
+ * @param {object} ctx - The context variable from app.js.
+ * @param {string} data the data to mixin.
  * @return {string}
  */
 function generateCode(ctx, data) {
