@@ -1,9 +1,18 @@
-const {sha256} = require('js-sha256');
+"use strict";
 
+const {sha256} = require("js-sha256");
+
+/**
+ * Hash data.
+ * @param {object} ctx - The context variable from app.js
+ * @param {string} data - The data to mixin with jwt_secret
+ * @param {number} [sub] - The length to extract
+ * @return {string}
+ */
 function hash(ctx, data, sub = 0) {
     const metadata = `${ctx.jwt_secret}_${data}`;
-    const hash_hex = sha256(metadata);
-    return sub ? hash_hex.substring(0, sub) : hash_hex;
+    const hashHex = sha256(metadata);
+    return sub ? hashHex.substring(0, sub) : hashHex;
 }
 
 module.exports = hash;
