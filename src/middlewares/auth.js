@@ -11,6 +11,16 @@ const {StatusCodes} = require("http-status-codes");
 const authMethods = {
     "SARA": async (ctx, req, _) =>
         require("../utils/sara_token").validateAuthToken(ctx, req.auth.secret),
+    "TEST": async (ctx, req, _) => {
+        if (!ctx.testing) return false;
+        return {
+            user: JSON.parse(
+                Buffer
+                    .from(req.auth.secret, 'base64')
+                    .toString('utf-8'),
+            ),
+        };
+    },
 };
 
 // Export (function)

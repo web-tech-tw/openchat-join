@@ -3,6 +3,6 @@
 
 // Export (object)
 module.exports = {
-    APP_NAME: "template.recv",
+    APP_NAME: "openchat-join",
     SECRET_FILENAME: "secret.key",
 };

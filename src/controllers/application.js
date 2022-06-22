@@ -23,13 +23,11 @@ module.exports = (ctx, r) => {
     const router = expressRouter();
 
     router.get(
-        "/application",
+        "/",
         middleware.access("openchat"),
+        middleware.validator.query("code").isString().notEmpty(),
+        middleware.inspector,
         async (req, res) => {
-            if (!(req?.query?.code)) {
-                res.sendStatus(StatusCodes.BAD_REQUEST);
-                return;
-            }
             const Application = ctx.database.model(
                 "Application", schema.application,
             );
@@ -45,15 +43,13 @@ module.exports = (ctx, r) => {
     );
 
     router.post(
-        "/application",
+        "/",
+        middleware.validator.body("slug").isString().notEmpty(),
+        middleware.inspector,
         async (req, res) => {
-            if (!(req?.body?.slug)) {
-                res.sendStatus(StatusCodes.BAD_REQUEST);
-                return;
-            }
             const Room = ctx.database.model("Room", schema.room);
             const roomId = util.hash(ctx, req.body.slug, 24);
-            if (!await Room.findOne({_id: roomId})) {
+            if (!await Room.findOne({_id: roomId}).exec()) {
                 res.sendStatus(StatusCodes.NOT_FOUND);
                 return;
             }
@@ -79,21 +75,18 @@ module.exports = (ctx, r) => {
                 created_at: ctx.now(),
                 ip_address: ipAddress,
                 code,
-            }
-            ;
+            };
             const application = await (new Application(metadata)).save();
             res.status(StatusCodes.CREATED).send(application);
         },
     );
 
     router.patch(
-        "/application",
+        "/",
         middleware.access("openchat"),
+        middleware.validator.query("code").isString().notEmpty(),
+        middleware.inspector,
         async (req, res) => {
-            if (!(req?.query?.code)) {
-                res.sendStatus(StatusCodes.BAD_REQUEST);
-                return;
-            }
             const Application = ctx.database.model(
                 "Application", schema.application,
             );
@@ -112,17 +105,17 @@ module.exports = (ctx, r) => {
     );
 
     router.delete(
-        "/application",
+        "/",
         middleware.access("openchat"),
+        middleware.validator.query("code").isString().notEmpty(),
+        middleware.inspector,
         async (req, res) => {
-            if (!(req?.query?.code)) {
-                res.sendStatus(StatusCodes.BAD_REQUEST);
-                return;
-            }
             const Application = ctx.database.model(
                 "Application", schema.application,
             );
-            if (await Application.findOneAndDelete({code: req.query.code})) {
+            if (await Application.findOneAndDelete({
+                code: req.query.code
+            }).exec()) {
                 res.sendStatus(StatusCodes.OK);
             } else {
                 res.sendStatus(StatusCodes.NOT_FOUND);
@@ -130,5 +123,5 @@ module.exports = (ctx, r) => {
         },
     );
 
-    r.use("/login", router);
+    r.use("/application", router);
 };
