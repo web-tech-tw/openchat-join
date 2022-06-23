@@ -1,5 +1,8 @@
 "use strict";
+// node-cache is an in-memory cache.
 
-const node_cache = require('node-cache');
+// Import node-cache
+const NodeCache = require("node-cache");
 
-module.exports = new node_cache({stdTTL: 100});
+// Initialize node-cache, and export (instance)
+module.exports = new NodeCache({stdTTL: 100});

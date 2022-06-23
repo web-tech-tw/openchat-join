@@ -1,129 +1,50 @@
 "use strict";
 
-require('dotenv').config();
+// Load configs from .env
+require("dotenv").config();
 
-const { StatusCodes } = require('http-status-codes');
+// Import StatusCodes
+const {StatusCodes} = require("http-status-codes");
 
-const
-    constant = require('./src/init/const'),
-    ctx = {
-        now: () => Math.floor(new Date().getTime() / 1000),
-        cache: require('./src/init/cache'),
-        database: require('./src/init/database'),
-        jwt_secret: require('./src/init/jwt_secret')
-    },
-    util = {
-        hash: require('./src/utils/hash'),
-        code: require('./src/utils/code'),
-        ip_address: require('./src/utils/ip_address')
-    },
-    schema = {
-        application: require("./src/schemas/application"),
-        room: require("./src/schemas/room")
-    },
-    middleware = {
-        access: require('./src/middlewares/access'),
-    };
+// Import modules
+const constant = require("./src/init/const");
+const ctx = {
+    now: () => Math.floor(new Date().getTime() / 1000),
+    cache: require("./src/init/cache"),
+    database: require("./src/init/database"),
+    jwt_secret: require("./src/init/jwt_secret"),
+};
 
-const app = require('./src/init/express')(ctx);
+// Initialize application
+const app = require("./src/init/express")(ctx);
 
-app.get('/', (req, res) => {
+// Redirect / to WEBSITE_URL
+app.get("/", (_, res) => {
     res.redirect(StatusCodes.MOVED_PERMANENTLY, process.env.WEBSITE_URL);
 });
 
-app.get('/admin-room', middleware.access('openchat'), (req, res) => {
-    const url = process.env.OPENCHAT_ADMIN_ROOM_URL;
-    const password = process.env.OPENCHAT_ADMIN_ROOM_PASSWORD;
-    res.send({url, password});
-});
+// The handler for robots.txt (deny all friendly robots)
+app.get(
+    "/robots.txt",
+    (_, res) => res.type("txt").send("User-agent: *\nDisallow: /"),
+);
 
-app.post('/room', middleware.access('admin'), async (req, res) => {
-    if (!(req?.body?.slug)) {
-        res.sendStatus(StatusCodes.BAD_REQUEST);
-        return;
-    }
-    const Room = ctx.database.model('Room', schema.room);
-    const room_id = util.hash(ctx, req.body.slug, 24);
-    if (await Room.findOne({_id: room_id})) {
-        res.sendStatus(StatusCodes.CONFLICT);
-        return;
-    }
-    const metadata = {_id: room_id, slug: req.body.slug};
-    const room = await (new Room(metadata)).save();
-    res.status(StatusCodes.CREATED).send(room);
-});
+// Map routes
+require("./src/controllers/index")(ctx, app);
 
-app.get('/application', middleware.access('openchat'), async (req, res) => {
-    if (!(req?.query?.code)) {
-        res.sendStatus(StatusCodes.BAD_REQUEST);
-        return;
-    }
-    const Application = ctx.database.model('Application', schema.application);
-    const application = await Application.findOne({code: req.query.code}).exec();
-    if (application) {
-        res.send(application);
-    } else {
-        res.sendStatus(StatusCodes.NOT_FOUND);
-    }
-});
-
-app.post('/application', async (req, res) => {
-    if (!(req?.body?.slug)) {
-        res.sendStatus(StatusCodes.BAD_REQUEST);
-        return;
-    }
-    const Room = ctx.database.model('Room', schema.room);
-    const room_id = util.hash(ctx, req.body.slug, 24);
-    if (!await Room.findOne({_id: room_id})) {
-        res.sendStatus(StatusCodes.NOT_FOUND);
-        return;
-    }
-    const Application = ctx.database.model('Application', schema.application);
-    const user_agent = req.header('User-Agent') || 'Unknown';
-    const ip_address = util.ip_address(req);
-    const code_data = `${room_id}_${ip_address}|${user_agent}`;
-    const application_id = util.hash(ctx, code_data, 24);
-    const exist_application = await Application.findOne({_id: application_id}).exec();
-    if (exist_application) {
-        res.status(StatusCodes.CONFLICT).send(exist_application);
-        return;
-    }
-    const code = util.code.generateCode(ctx, util, code_data);
-    const metadata = {_id: application_id, room_id, code, user_agent, ip_address, created_at: ctx.now()};
-    const application = await (new Application(metadata)).save();
-    res.status(StatusCodes.CREATED).send(application);
-});
-
-app.patch('/application', middleware.access('openchat'), async (req, res) => {
-    if (!(req?.query?.code)) {
-        res.sendStatus(StatusCodes.BAD_REQUEST);
-        return;
-    }
-    const Application = ctx.database.model('Application', schema.application);
-    const metadata = {approval_by: req.authenticated.sub, approval_at: ctx.now()};
-    if (await Application.findOneAndUpdate({code: req.query.code}, metadata)) {
-        res.sendStatus(StatusCodes.CREATED);
-    } else {
-        res.sendStatus(StatusCodes.NOT_FOUND);
-    }
-});
-
-app.delete('/application', middleware.access('openchat'), async (req, res) => {
-    if (!(req?.query?.code)) {
-        res.sendStatus(StatusCodes.BAD_REQUEST);
-        return;
-    }
-    const Application = ctx.database.model('Application', schema.application);
-    if (await Application.findOneAndDelete({code: req.query.code})) {
-        res.sendStatus(StatusCodes.OK);
-    } else {
-        res.sendStatus(StatusCodes.NOT_FOUND);
-    }
-});
-
-app.listen(process.env.HTTP_PORT, process.env.HTTP_HOSTNAME, () => {
-    console.log(constant.APP_NAME)
-    console.log('====')
-    console.log('Application is listening at')
-    console.log(`http://localhost:${process.env.HTTP_PORT}`)
+// Show status message
+(() => {
+    const nodeEnv = process.env.NODE_ENV;
+    const runtimeEnv = process.env.RUNTIME_ENV || "native";
+    console.log(
+        constant.APP_NAME,
+        `(runtime: ${nodeEnv}, ${runtimeEnv})`,
+        "\n====",
+    );
+})();
+// Mount application and execute it
+require("./src/execute")(app, ({type, hostname, port}) => {
+    const protocol = type === "general" ? "http" : "https";
+    console.log(`Protocol "${protocol}" is listening at`);
+    console.log(`${protocol}://${hostname}:${port}`);
 });
