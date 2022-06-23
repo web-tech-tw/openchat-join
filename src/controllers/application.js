@@ -97,7 +97,7 @@ module.exports = (ctx, r) => {
             if (await Application.findOneAndUpdate(
                 {code: req.query.code}, metadata,
             ).exec()) {
-                res.sendStatus(StatusCodes.CREATED);
+                res.sendStatus(StatusCodes.NO_CONTENT);
             } else {
                 res.sendStatus(StatusCodes.NOT_FOUND);
             }
@@ -116,7 +116,7 @@ module.exports = (ctx, r) => {
             if (await Application.findOneAndDelete({
                 code: req.query.code
             }).exec()) {
-                res.sendStatus(StatusCodes.OK);
+                res.sendStatus(StatusCodes.NO_CONTENT);
             } else {
                 res.sendStatus(StatusCodes.NOT_FOUND);
             }
