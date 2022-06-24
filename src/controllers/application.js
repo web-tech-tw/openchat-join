@@ -11,6 +11,7 @@ const util = {
 };
 const schema = {
     application: require("../schemas/application"),
+    room: require("../schemas/room"),
 };
 const middleware = {
     access: require("../middlewares/access"),
