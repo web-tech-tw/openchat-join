@@ -115,7 +115,7 @@ module.exports = (ctx, r) => {
                 "Application", schema.application,
             );
             if (await Application.findOneAndDelete({
-                code: req.query.code
+                code: req.query.code,
             }).exec()) {
                 res.sendStatus(StatusCodes.NO_CONTENT);
             } else {

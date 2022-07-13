@@ -16,8 +16,8 @@ const authMethods = {
         return {
             user: JSON.parse(
                 Buffer
-                    .from(req.auth.secret, 'base64')
-                    .toString('utf-8'),
+                    .from(req.auth.secret, "base64")
+                    .toString("utf-8"),
             ),
         };
     },

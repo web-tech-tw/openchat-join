@@ -5,7 +5,7 @@ const {Router: expressRouter} = require("express");
 
 // Import modules
 const util = {
-    hash: require("../utils/hash")
+    hash: require("../utils/hash"),
 };
 const schema = {
     room: require("../schemas/room"),
