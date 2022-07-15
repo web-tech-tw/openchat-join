@@ -17,7 +17,10 @@ module.exports = (role) => (req, res, next) => {
         return;
     }
     // Accept SARA or TEST only
-    if (req.auth.method !== "SARA" && req.auth.method !== "TEST") {
+    if (
+        req.auth.method !== "SARA" &&
+        !(req.auth.method === "TEST" && process.env.NODE_ENV !== "production")
+    ) {
         res.sendStatus(StatusCodes.METHOD_NOT_ALLOWED);
         return;
     }
