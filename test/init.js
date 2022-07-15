@@ -11,6 +11,9 @@ const ctx = {
     database: require("../src/init/database"),
     jwt_secret: require("../src/init/jwt_secret"),
 };
+const util = {
+    test_token: require("../src/utils/test_token"),
+}
 
 // Define fake users
 const fakeUsers = {
@@ -34,9 +37,7 @@ const fakeUsers = {
     },
 };
 const getUserTestToken = (who) => `TEST ${
-    Buffer
-        .from(JSON.stringify(fakeUsers[who]), "utf-8")
-        .toString("base64")
+    util.test_token.issueAuthToken(ctx, fakeUsers[who])
 }`;
 
 // Initialize application
