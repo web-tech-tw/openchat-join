@@ -14,8 +14,8 @@ const schema = {
     room: require("../schemas/room"),
 };
 const middleware = {
-    access: require("../middlewares/access"),
-    inspector: require("../middlewares/inspector"),
+    access: require("../middleware/access"),
+    inspector: require("../middleware/inspector"),
     validator: require("express-validator"),
 };
 

@@ -2,7 +2,7 @@
 
 // Import modules
 const middleware = {
-    access: require("../middlewares/access"),
+    access: require("../middleware/access"),
 };
 
 // Export routes mapper (function)
