@@ -8,8 +8,8 @@ const {StatusCodes} = require("http-status-codes");
 
 // Initialize tests
 const {app, getUserTestToken, ctx} = require("./init");
-const testing = require("../src/utils/testing");
-const to = testing.urlGlue("/application");
+const {log, urlGlue} = require("../src/utils/testing");
+const to = urlGlue("/application");
 
 // Define tests
 describe("/application", function() {
@@ -68,7 +68,7 @@ describe("/application", function() {
                 .set("Authorization", getUserTestToken("manager"))
                 .expect(StatusCodes.OK)
                 .then((res) => {
-                    testing.log(res.body);
+                    log(res.body);
                     done();
                 })
                 .catch((e) => {
@@ -85,7 +85,7 @@ describe("/application", function() {
                 .set("Authorization", getUserTestToken("manager"))
                 .expect(StatusCodes.NO_CONTENT)
                 .then((res) => {
-                    testing.log(res.body);
+                    log(res.body);
                     done();
                 })
                 .catch((e) => {
@@ -102,7 +102,7 @@ describe("/application", function() {
                 .set("Authorization", getUserTestToken("manager"))
                 .expect(StatusCodes.NO_CONTENT)
                 .then((res) => {
-                    testing.log(res.body);
+                    log(res.body);
                     done();
                 })
                 .catch((e) => {

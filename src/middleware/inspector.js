@@ -11,7 +11,6 @@ const {validationResult} = require("express-validator");
 // Export (function)
 module.exports = (req, res, next) => {
     const errors = validationResult(req);
-    console.log(res.body);
     if (errors.isEmpty()) {
         next();
     } else {
