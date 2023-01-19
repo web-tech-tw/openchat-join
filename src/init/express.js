@@ -1,6 +1,9 @@
 "use strict";
 // express.js is a web framework.
 
+// Import config
+const {getMust} = require("../config");
+
 // Import express.js
 const express = require("express");
 
@@ -17,18 +20,20 @@ module.exports = (ctx) => {
     app.use(express.urlencoded({extended: true}));
 
     // Optional middleware
-    if (process.env.IS_PUBLIC !== "yes") {
+    if (getMust("IS_PUBLIC") !== "yes") {
         // Check header "Origin"
         app.use(require("../middleware/origin"));
     }
-    if (process.env.HTTPS_REDIRECT === "yes") {
+    if (getMust("HTTPS_REDIRECT") === "yes") {
         // Do https redirects
         app.use(require("../middleware/https_redirect"));
     }
-    if (process.env.HTTP_CORS === "yes") {
+    if (getMust("HTTP_CORS") === "yes") {
         // Do CORS handler
         const cors = require("cors");
-        app.use(cors({origin: process.env.WEBSITE_URL}));
+        app.use(cors({
+            origin: getMust("WEBSITE_URL"),
+        }));
     }
 
     // Return app engine

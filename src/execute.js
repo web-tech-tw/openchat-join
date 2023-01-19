@@ -1,9 +1,12 @@
 "use strict";
 
 // Import modules
-const fs = require("fs");
-const http = require("http");
-const https = require("https");
+const fs = require("node:fs");
+const http = require("node:http");
+const https = require("node:https");
+
+// Import config
+const {getMust} = require("./config");
 
 /**
  * Setup http protocol (general)
@@ -11,10 +14,11 @@ const https = require("https");
  * @param {function} callback
  */
 function general(app, callback) {
-    const httpServer = http.createServer(app);
-    const port = parseInt(process.env.HTTP_PORT);
-    httpServer.listen(port, process.env.HTTP_HOSTNAME);
-    callback({type: "general", hostname: process.env.HTTP_HOSTNAME, port});
+    const options = {};
+    const httpServer = http.createServer(options, app);
+    const port = parseInt(getMust("HTTP_PORT"));
+    httpServer.listen(port, getMust("HTTP_HOSTNAME"));
+    callback({type: "general", hostname: getMust("HTTP_HOSTNAME"), port});
 }
 
 /**
@@ -23,22 +27,22 @@ function general(app, callback) {
  * @param {function} callback
  */
 function secure(app, callback) {
-    const credentials = {
-        key: fs.readFileSync(process.env.HTTPS_KEY_PATH),
-        cert: fs.readFileSync(process.env.HTTPS_CERT_PATH),
+    const options = {
+        key: fs.readFileSync(getMust("HTTPS_KEY_PATH")),
+        cert: fs.readFileSync(getMust("HTTPS_CERT_PATH")),
     };
-    const httpsServer = https.createServer(credentials, app);
-    const port = parseInt(process.env.HTTPS_PORT);
-    httpsServer.listen(port, process.env.HTTP_HOSTNAME);
-    callback({type: "secure", hostname: process.env.HTTP_HOSTNAME, port});
+    const httpsServer = https.createServer(options, app);
+    const port = parseInt(getMust("HTTPS_PORT"));
+    httpsServer.listen(port, getMust("HTTP_HOSTNAME"));
+    callback({type: "secure", hostname: getMust("HTTP_HOSTNAME"), port});
 }
 
 // Detect protocols automatically
 module.exports = function(app, callback) {
-    if (process.env.HTTPS === "both") {
+    if (getMust("HTTPS") === "both") {
         general(app, callback);
         secure(app, callback);
-    } else if (process.env.HTTPS === "only") {
+    } else if (getMust("HTTPS") === "only") {
         secure(app, callback);
     } else {
         general(app, callback);

@@ -4,17 +4,13 @@ const {StatusCodes} = require("http-status-codes");
 const {Router: expressRouter} = require("express");
 
 // Import modules
-const util = {
-    hash: require("../utils/hash"),
-};
-const schema = {
-    room: require("../schemas/room"),
-};
-const middleware = {
-    access: require("../middleware/access"),
-    inspector: require("../middleware/inspector"),
-    validator: require("express-validator"),
-};
+const utilHash = require("../utils/hash");
+
+const schemaRoom = require("../schemas/room");
+
+const middlewareAccess = require("../middleware/access");
+const middlewareInspector = require("../middleware/inspector");
+const middlewareValidator = require("express-validator");
 
 // Export routes mapper (function)
 module.exports = (ctx, r) => {
@@ -22,12 +18,12 @@ module.exports = (ctx, r) => {
 
     router.post(
         "/",
-        middleware.access("admin"),
-        middleware.validator.body("slug").isString().notEmpty(),
-        middleware.inspector,
+        middlewareAccess("admin"),
+        middlewareValidator.body("slug").isString().notEmpty(),
+        middlewareInspector,
         async (req, res) => {
-            const Room = ctx.database.model("Room", schema.room);
-            const roomId = util.hash(ctx, req.body.slug, 24);
+            const Room = ctx.database.model("Room", schemaRoom);
+            const roomId = utilHash(ctx, req.body.slug, 24);
             if (await Room.findOne({_id: roomId}).exec()) {
                 res.sendStatus(StatusCodes.CONFLICT);
                 return;

@@ -1,7 +1,12 @@
 "use strict";
 
-// Load configs from .env
-require("dotenv").config();
+// Import config
+const {
+    runLoader,
+} = require("../src/config");
+
+// Load config
+runLoader(__dirname+"/../.env");
 
 // Import modules
 const ctx = {
@@ -11,9 +16,7 @@ const ctx = {
     database: require("../src/init/database"),
     jwt_secret: require("../src/init/jwt_secret"),
 };
-const util = {
-    test_token: require("../src/utils/test_token"),
-}
+const {issueAuthToken} = require("../src/utils/test_token");
 
 // Define fake users
 const fakeUsers = {
@@ -37,7 +40,7 @@ const fakeUsers = {
     },
 };
 const getUserTestToken = (who) => `TEST ${
-    util.test_token.issueAuthToken(ctx, fakeUsers[who])
+    issueAuthToken(ctx, fakeUsers[who])
 }`;
 
 // Initialize application

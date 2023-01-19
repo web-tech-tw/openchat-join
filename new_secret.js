@@ -1,8 +1,8 @@
 "use strict";
 
 // Import modules
-const fs = require("fs");
-const crypto = require("crypto");
+const fs = require("node:fs");
+const crypto = require("node:crypto");
 
 // Import constant
 const constant = require("./src/init/const");
@@ -15,7 +15,7 @@ const secret = Buffer.from(bytes).toString("base64");
 // Write the secret file
 try {
     fs.writeFileSync(constant.SECRET_FILENAME, secret);
-    console.log(
+    console.info(
         `The secret has been saved into "${constant.SECRET_FILENAME}".`,
     );
 } catch (e) {

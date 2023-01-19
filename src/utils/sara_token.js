@@ -1,17 +1,17 @@
 "use strict";
 // Token utils of Sara.
 
-// Import jsonwebtoken
-const jwt = require("jsonwebtoken");
+// Import config
+const {getMust} = require("../config");
 
-// Import SHA256 generator
-const {sha256} = require("js-sha256");
+// Import jsonwebtoken
+const {verify} = require("jsonwebtoken");
 
 // Define generalValidateOptions generator
 const generalValidateOptions = (metadata) => ({
     algorithms: ["HS256"],
-    audience: process.env.SARA_AUDIENCE,
-    issuer: process.env.SARA_ISSUER || sha256(metadata.ctx.jwt_secret),
+    issuer: getMust("SARA_ISSUER"),
+    audience: getMust("SARA_AUDIENCE"),
     complete: true,
 });
 
@@ -24,7 +24,7 @@ const generalValidateOptions = (metadata) => ({
 function validateAuthToken(ctx, token) {
     try {
         const validateOptions = generalValidateOptions({ctx});
-        const data = jwt.verify(token, ctx.jwt_secret, validateOptions, null);
+        const data = verify(token, ctx.jwt_secret, validateOptions, null);
         if (
             data?.header?.sara?.version !== 1 ||
             data?.header?.sara?.type !== "auth"

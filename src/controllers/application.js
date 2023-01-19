@@ -4,20 +4,18 @@ const {StatusCodes} = require("http-status-codes");
 const {Router: expressRouter} = require("express");
 
 // Import modules
-const util = {
-    hash: require("../utils/hash"),
-    code: require("../utils/code"),
-    ip_address: require("../utils/ip_address"),
-};
-const schema = {
-    application: require("../schemas/application"),
-    room: require("../schemas/room"),
-};
-const middleware = {
-    access: require("../middleware/access"),
-    inspector: require("../middleware/inspector"),
-    validator: require("express-validator"),
-};
+
+const utilHash = require("../utils/hash");
+const utilCode = require("../utils/code");
+const utilIpAddress = require("../utils/ip_address");
+const {getPosixTimestamp} = require("../utils/native");
+
+const schemaApplication = require("../schemas/application");
+const schemaRoom = require("../schemas/room");
+
+const middlewareAccess = require("../middleware/access");
+const middlewareInspector = require("../middleware/inspector");
+const middlewareValidator = require("express-validator");
 
 // Export routes mapper (function)
 module.exports = (ctx, r) => {
@@ -25,16 +23,15 @@ module.exports = (ctx, r) => {
 
     router.get(
         "/",
-        middleware.access("openchat"),
-        middleware.validator.query("code").isString().notEmpty(),
-        middleware.inspector,
+        middlewareAccess("openchat"),
+        middlewareValidator.query("code").isString().notEmpty(),
+        middlewareInspector,
         async (req, res) => {
             const Application = ctx.database.model(
-                "Application", schema.application,
+                "Application", schemaApplication,
             );
-            const application = await Application
-                .findOne({code: req.query.code})
-                .exec();
+            const application = await Application.
+                findOne({code: req.query.code}).exec();
             if (application) {
                 res.send(application);
             } else {
@@ -45,22 +42,22 @@ module.exports = (ctx, r) => {
 
     router.post(
         "/",
-        middleware.validator.body("slug").isString().notEmpty(),
-        middleware.inspector,
+        middlewareValidator.body("slug").isString().notEmpty(),
+        middlewareInspector,
         async (req, res) => {
-            const Room = ctx.database.model("Room", schema.room);
-            const roomId = util.hash(ctx, req.body.slug, 24);
+            const Room = ctx.database.model("Room", schemaRoom);
+            const roomId = utilHash(ctx, req.body.slug, 24);
             if (!await Room.findOne({_id: roomId}).exec()) {
                 res.sendStatus(StatusCodes.NOT_FOUND);
                 return;
             }
             const Application = ctx.database.model(
-                "Application", schema.application,
+                "Application", schemaApplication,
             );
             const userAgent = req.header("User-Agent") || "Unknown";
-            const ipAddress = util.ip_address(req);
+            const ipAddress = utilIpAddress(req);
             const codeData = `${roomId}_${ipAddress}|${userAgent}`;
-            const applicationId = util.hash(ctx, codeData, 24);
+            const applicationId = utilHash(ctx, codeData, 24);
             const existApplication = await Application.findOne({
                 _id: applicationId,
             }).exec();
@@ -68,12 +65,12 @@ module.exports = (ctx, r) => {
                 res.status(StatusCodes.CONFLICT).send(existApplication);
                 return;
             }
-            const code = util.code.generateCode(ctx, codeData);
+            const code = utilCode.generateCode(ctx, codeData);
             const metadata = {
                 _id: applicationId,
                 room_id: roomId,
                 user_agent: userAgent,
-                created_at: ctx.now(),
+                created_at: getPosixTimestamp(),
                 ip_address: ipAddress,
                 code,
             };
@@ -84,16 +81,16 @@ module.exports = (ctx, r) => {
 
     router.patch(
         "/",
-        middleware.access("openchat"),
-        middleware.validator.query("code").isString().notEmpty(),
-        middleware.inspector,
+        middlewareAccess("openchat"),
+        middlewareValidator.query("code").isString().notEmpty(),
+        middlewareInspector,
         async (req, res) => {
             const Application = ctx.database.model(
-                "Application", schema.application,
+                "Application", schemaApplication,
             );
             const metadata = {
                 approval_by: req.auth.id,
-                approval_at: ctx.now(),
+                approval_at: getPosixTimestamp(),
             };
             if (await Application.findOneAndUpdate(
                 {code: req.query.code}, metadata,
@@ -107,12 +104,12 @@ module.exports = (ctx, r) => {
 
     router.delete(
         "/",
-        middleware.access("openchat"),
-        middleware.validator.query("code").isString().notEmpty(),
-        middleware.inspector,
+        middlewareAccess("openchat"),
+        middlewareValidator.query("code").isString().notEmpty(),
+        middlewareInspector,
         async (req, res) => {
             const Application = ctx.database.model(
-                "Application", schema.application,
+                "Application", schemaApplication,
             );
             if (await Application.findOneAndDelete({
                 code: req.query.code,
