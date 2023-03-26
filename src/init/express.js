@@ -2,40 +2,41 @@
 // express.js is a web framework.
 
 // Import config
-const {getMust} = require("../config");
+const {getMust, getEnabled} = require("../config");
 
 // Import express.js
 const express = require("express");
 
-// Export (function)
-module.exports = (ctx) => {
-    // Initialize app engine
-    const app = express();
+// Initialize app engine
+const app = express();
 
-    // General middleware
-    app.use(require("request-ip").mw());
-    app.use(require("../middleware/auth")(ctx));
+// Create middleware handlers
+const middlewareRequestIp = require("request-ip").mw();
+const middlewareAuth = require("../middleware/auth");
 
-    // Request body parser
-    app.use(express.urlencoded({extended: true}));
+// Register global middleware
+app.use(middlewareRequestIp);
+app.use(middlewareAuth);
 
-    // Optional middleware
-    if (getMust("IS_PUBLIC") !== "yes") {
+// Optional middleware
+if (getEnabled("ENABLED_REDIRECT_HTTP_HTTPS")) {
+    // Do https redirects
+    app.use(require("../middleware/https_redirect"));
+}
+if (getEnabled("ENABLED_CORS")) {
+    // Do global CORS handler
+    const cors = require("cors");
+    app.use(cors({
+        origin: getMust("CORS_ORIGIN"),
+    }));
+    if (getEnabled("ENABLED_CORS_ORIGIN_CHECK")) {
         // Check header "Origin"
         app.use(require("../middleware/origin"));
     }
-    if (getMust("HTTPS_REDIRECT") === "yes") {
-        // Do https redirects
-        app.use(require("../middleware/https_redirect"));
-    }
-    if (getMust("HTTP_CORS") === "yes") {
-        // Do CORS handler
-        const cors = require("cors");
-        app.use(cors({
-            origin: getMust("WEBSITE_URL"),
-        }));
-    }
+}
 
-    // Return app engine
-    return app;
-};
+// Export useFunction
+exports.useApp = () => app;
+
+// Export express for shortcut
+exports.express = express;

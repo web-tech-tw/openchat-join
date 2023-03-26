@@ -1,33 +1,41 @@
 "use strict";
 
-// Import supertest
-const request = require("supertest");
+require("./kernel/init");
 
-// Import StatusCodes
+const utils = require("./kernel/utils");
+
+const request = require("supertest");
+const {step} = require("mocha-steps");
+
 const {StatusCodes} = require("http-status-codes");
 
+const {useApp} = require("../src/init/express");
+const {useDatabase} = require("../src/init/database");
+
 // Initialize tests
-const {app, ctx, getUserTestToken} = require("./init");
-const {log, urlGlue} = require("../src/utils/testing");
-const to = urlGlue("/room");
+const app = useApp();
+const database = useDatabase();
+
+require("../src/routes/index")();
+const to = utils.urlGlue("/room");
 
 // Define tests
 describe("/room", function() {
     before(function(done) {
         // Reset collection "rooms" before test
-        ctx.database.connection.dropCollection("rooms", () => done());
+        database.connection.dropCollection("rooms", () => done());
     });
 
     describe("create", function() {
-        const method = (who, expectCode, done) => request(app)
+        const method = (roleName, expectedCode, done) => request(app)
             .post(to("/"))
-            .send({slug: `test-room-${who}`})
+            .send({slug: `test-room-${roleName}`})
             .type("form")
             .set("Accept", "application/json")
-            .set("Authorization", getUserTestToken(who))
-            .expect(expectCode)
+            .set("Authorization", utils.getUserTestToken(roleName))
+            .expect(expectedCode)
             .then((res) => {
-                log(res.body);
+                utils.log(res.body);
                 done();
             })
             .catch((e) => {
@@ -35,15 +43,15 @@ describe("/room", function() {
                 done(e);
             });
 
-        it("admin", function(done) {
+        step("admin", function(done) {
             method("admin", StatusCodes.CREATED, done);
         });
 
-        it("manager", function(done) {
+        step("manager", function(done) {
             method("manager", StatusCodes.FORBIDDEN, done);
         });
 
-        it("guest", function(done) {
+        step("guest", function(done) {
             method("guest", StatusCodes.FORBIDDEN, done);
         });
     });

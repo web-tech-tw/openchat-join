@@ -5,62 +5,62 @@
 // please use "access.js" middleware.
 
 // Import StatusCodes
-const {StatusCodes} = require("http-status-codes");
-
 const {isObjectPropExists} = require("../utils/native");
+
+const saraTokenAuth = require("../utils/sara_token");
+const testTokenAuth = require("../utils/test_token");
 
 // Import authMethods
 const authMethods = {
-    "TEST": async (ctx, req, _) =>
-        require("../utils/test_token").validateAuthToken(ctx, req.auth.secret),
-    "SARA": async (ctx, req, _) =>
-        require("../utils/sara_token").validateAuthToken(ctx, req.auth.secret),
+    "SARA": saraTokenAuth.validate,
+    "TEST": testTokenAuth.validate,
 };
 
+const isAsync = (func) =>
+    func.constructor.name === "AsyncFunction";
+
 // Export (function)
-module.exports = (ctx) => function(req, res, next) {
+module.exports = async (req, _, next) => {
     const authCode = req.header("Authorization");
     if (!authCode) {
         next();
         return;
     }
+
     const params = authCode.split(" ");
     if (params.length !== 2) {
         next();
         return;
     }
+    const [method, secret] = params;
+
     req.auth = {
         id: null,
         metadata: null,
-        method: params[0],
-        secret: params[1],
+        method,
+        secret,
     };
     if (!isObjectPropExists(authMethods, req.auth.method)) {
         next();
         return;
     }
-    authMethods[req.auth.method](ctx, req, res)
-        .then((result) => {
-            if (res.aborted) {
-                return;
-            }
-            if (result && !req.auth.metadata) {
-                req.auth.metadata = result;
-            }
-            if (result && !req.auth.id) {
-                req.auth.id =
-                    result?.id ||
-                    result?.sub ||
-                    result?.user?.id ||
-                    result?.data?.id ||
-                    result?.user?._id ||
-                    result?.data?._id ||
-                    null;
-            }
-            next();
-        })
-        .catch((error) => {
-            res.sendStatus(StatusCodes.INTERNAL_SERVER_ERROR);
-            console.error(error);
-        });
+
+    const authMethod = authMethods[method];
+    const authResult = isAsync(authMethod) ?
+        await authMethod(secret) :
+        authMethod(secret);
+
+    const {
+        userId,
+        payload,
+        isAborted,
+    } = authResult;
+    if (isAborted) {
+        next();
+        return;
+    }
+
+    req.auth.id = userId;
+    req.auth.metadata = payload;
+    next();
 };

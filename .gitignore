@@ -1,5 +1,4 @@
 # App config files
-secret.key
 .env
 
 # Finder config file

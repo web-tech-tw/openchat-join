@@ -16,29 +16,28 @@ const constant = require("./src/init/const");
 // Import StatusCodes
 const {StatusCodes} = require("http-status-codes");
 
-// Create context storage
-const ctx = {
-    cache: require("./src/init/cache"),
-    database: require("./src/init/database"),
-    jwt_secret: require("./src/init/jwt_secret"),
-};
+// Import useApp
+const {useApp} = require("./src/init/express");
 
 // Initialize application
-const app = require("./src/init/express")(ctx);
+const app = useApp();
 
-// Redirect / to WEBSITE_URL
+// Redirect / to INDEX_REDIRECT_URL
 app.get("/", (_, res) => {
-    res.redirect(StatusCodes.MOVED_PERMANENTLY, getMust("WEBSITE_URL"));
+    const redirectCode = getMust("INDEX_REDIRECT_TYPE") === "permanent" ?
+        StatusCodes.MOVED_PERMANENTLY :
+        StatusCodes.MOVED_TEMPORARILY;
+    const redirectUrl = getMust("INDEX_REDIRECT_URL");
+    res.redirect(redirectCode, redirectUrl);
 });
 
 // The handler for robots.txt (deny all friendly robots)
-app.get(
-    "/robots.txt",
-    (_, res) => res.type("txt").send("User-agent: *\nDisallow: /"),
-);
+app.get("/robots.txt", (_, res) => {
+    res.type("txt").send("User-agent: *\nDisallow: /");
+});
 
 // Map routes
-require("./src/controllers/index")(ctx, app);
+require("./src/routes/index")();
 
 // Show banner message
 (() => {

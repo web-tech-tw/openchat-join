@@ -2,52 +2,48 @@
 // Token utils of Sara.
 
 // Import config
-const {get, getMust} = require("../config");
+const {getMust} = require("../config");
 
-// Import createHash from crypto
-const {createHash} = require("node:crypto");
+const axios = require("axios");
 
-// Import jsonwebtoken
-const {verify} = require("jsonwebtoken");
-
-// Define hash function - SHA256
-const sha256hex = (data) =>
-    createHash("sha256").update(data).digest("hex");
-
-// Define generalValidateOptions generator
-const generalValidateOptions = ({jwtSecret}) => ({
-    algorithms: ["HS256"],
-    issuer: get("SARA_ISSUER") || sha256hex(jwtSecret),
-    audience: getMust("SARA_AUDIENCE"),
-    complete: true,
+const client = axios.create({
+    baseURL: getMust("SARA_RECV_HOST"),
+    headers: {
+        "User-Agent": "sara_client/2.0",
+    },
 });
 
 /**
- * Validate function (Auth)
- * @param {object} ctx - The context variable from app.js.
+ * Validate token
+ * @module sara_token
+ * @function
  * @param {string} token - The token to valid.
- * @return {boolean|object}
+ * @return {object}
  */
-function validateAuthToken(ctx, token) {
-    const {jwt_secret: jwtSecret} = ctx;
+async function validate(token) {
+    const result = {
+        userId: null,
+        payload: null,
+        isAborted: false,
+    };
+
     try {
-        const validateOptions = generalValidateOptions({jwtSecret});
-        const data = verify(token, jwtSecret, validateOptions, null);
-        if (
-            data?.header?.sara?.version !== 1 ||
-            data?.header?.sara?.type !== "auth"
-        ) {
-            console.error("invalid_sara_code_token");
-            return false;
-        }
-        return data.payload;
+        const authResponse = await client.get("/profile", {
+            headers: {
+                "Authorization": `SARA ${token}`,
+            },
+        });
+        result.userId = authResponse.data._id;
+        result.payload = authResponse.data;
     } catch (e) {
-        console.error(e);
-        return false;
+        result.isAborted = true;
+        result.payload = e;
     }
+
+    return result;
 }
 
 // Export (object)
 module.exports = {
-    validateAuthToken,
+    validate,
 };

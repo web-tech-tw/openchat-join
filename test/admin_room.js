@@ -1,25 +1,31 @@
 "use strict";
 
-// Import supertest
-const request = require("supertest");
+require("./kernel/init");
 
-// Import StatusCodes
+const utils = require("./kernel/utils");
+
+const request = require("supertest");
+const {step} = require("mocha-steps");
+
 const {StatusCodes} = require("http-status-codes");
 
+const {useApp} = require("../src/init/express");
+
 // Initialize tests
-const {app, getUserTestToken} = require("./init");
-const {log, urlGlue} = require("../src/utils/testing");
-const to = urlGlue("/admin-room");
+const app = useApp();
+
+require("../src/routes/index")();
+const to = utils.urlGlue("/admin-room");
 
 // Define tests
 describe("/", function() {
-    const method = (who, expectCode, done) => request(app)
+    const method = (roleName, expectedCode, done) => request(app)
         .get(to("/"))
         .set("Accept", "application/json")
-        .set("Authorization", getUserTestToken(who))
-        .expect(expectCode)
+        .set("Authorization", utils.getUserTestToken(roleName))
+        .expect(expectedCode)
         .then((res) => {
-            log(res.body);
+            utils.log(res.body);
             done();
         })
         .catch((e) => {
@@ -27,15 +33,15 @@ describe("/", function() {
             done(e);
         });
 
-    it("admin", function(done) {
+    step("admin", function(done) {
         method("admin", StatusCodes.OK, done);
     });
 
-    it("manager", function(done) {
+    step("manager", function(done) {
         method("manager", StatusCodes.OK, done);
     });
 
-    it("guest", function(done) {
+    step("guest", function(done) {
         method("guest", StatusCodes.FORBIDDEN, done);
     });
 });

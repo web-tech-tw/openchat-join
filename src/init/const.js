@@ -1,8 +1,5 @@
 "use strict";
 // Constants
 
-// Export (object)
-module.exports = {
-    APP_NAME: "openchat-join",
-    SECRET_FILENAME: "secret.key",
-};
+exports.APP_NAME = "openchat-join";
+exports.SECRET_FILENAME = "secret.key";
