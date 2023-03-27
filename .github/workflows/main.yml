@@ -73,3 +73,9 @@ jobs:
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
+
+  trigger-deploy-webhook:
+    - name: Trigger deploy webhook
+      uses: wei/curl@master
+      with:
+        args: ${{ secrets.DEPLOY_WEBHOOK_URL }}
