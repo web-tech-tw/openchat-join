@@ -6,19 +6,19 @@ const utilTestToken = require("../../src/utils/test_token");
 
 const fakeUsers = {
     admin: {
-        id: "admin",
+        _id: "admin",
         nickname: "OpenChat Admin",
         email: "openchat-admin@web-tech.github.io",
         roles: ["admin", "openchat"],
     },
     manager: {
-        id: "manager",
+        _id: "manager",
         nickname: "OpenChat Manager",
         email: "openchat-manager@web-tech.github.io",
         roles: ["openchat"],
     },
     guest: {
-        id: "guest",
+        _id: "guest",
         nickname: "OpenChat Guest",
         email: "openchat-guest@web-tech.github.io",
         roles: [],
