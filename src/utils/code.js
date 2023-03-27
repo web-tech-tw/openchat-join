@@ -1,19 +1,22 @@
 "use strict";
 
-const {getMust} = require("../config");
-const {sha256} = require("js-sha256");
+// Import createHash
+const {createHash} = require("node:crypto");
 
-const hashMixin = getMust("OPENCHAT_HASH_MIXIN");
+// Import useSecret
+const {useSecret} = require("../init/secret");
 
 /**
  * Hash data.
- * @param {string} data - The data to mixin with jwt_secret.
+ * @param {string} data - The data to mixin with secret.
  * @param {number} [sub] - Length of result to extract.
  * @return {string}
  */
 function computeHash(data, sub = 0) {
-    const metadata = `${hashMixin}_${data}`;
-    const hashHex = sha256(metadata);
+    const secret = useSecret();
+    const hashHex = createHash("sha256").
+        update(`${secret}_${data}`).
+        digest("hex");
     return sub ? hashHex.substring(0, sub) : hashHex;
 }
 
