@@ -17,12 +17,13 @@ jobs:
       contents: read
 
     steps:
-      - uses: actions/setup-node@v1
+      - name: Specific Node.js version
+        uses: actions/setup-node@v3
         with:
-          node-version: "18"
+          node-version: 18
 
       - name: Start MongoDB
-        uses: supercharge/mongodb-github-action@1.8.0
+        uses: supercharge/mongodb-github-action@1.9.0
         with:
           mongodb-version: "5.0"
 
