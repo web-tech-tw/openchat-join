@@ -36,13 +36,22 @@ router.get(
         const Application = database.model(
             "Application", schemaApplication,
         );
+
         const application = await Application.
             findOne({code: req.query.code}).exec();
-        if (application) {
-            res.send(application);
-        } else {
+        if (!application) {
             res.sendStatus(StatusCodes.NOT_FOUND);
+            return;
         }
+
+        if (!application.ip_geolocation) {
+            const {ip_address: ipAddress} = application;
+            const ipGeolocation = ipGeoQuery.lookup(ipAddress);
+            application.ip_geolocation = ipGeolocation;
+            application.save();
+        }
+
+        res.send(application);
     },
 );
 
