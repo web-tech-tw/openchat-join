@@ -17,6 +17,8 @@ const middlewareAccess = require("../middleware/access");
 const middlewareInspector = require("../middleware/inspector");
 const middlewareValidator = require("express-validator");
 
+const ipGeoQuery = require("geoip-lite");
+
 // Create router
 const {Router: newRouter} = express;
 const router = newRouter();
@@ -58,6 +60,7 @@ router.post(
 
         const userAgent = utilVisitor.getUserAgent(req);
         const ipAddress = utilVisitor.getIPAddress(req);
+        const ipGeolocation = ipGeoQuery.lookup(ipAddress);
         const codeData = `${roomId}_${ipAddress}|${userAgent}`;
         const applicationId = utilCode.computeHash(codeData, 24);
 
@@ -78,6 +81,7 @@ router.post(
             user_agent: userAgent,
             created_at: utilNative.getPosixTimestamp(),
             ip_address: ipAddress,
+            ip_geolocation: ipGeolocation,
             code,
         });
 

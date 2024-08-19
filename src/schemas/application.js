@@ -11,6 +11,7 @@ module.exports = new Schema({
     room_id: String,
     user_agent: String,
     ip_address: String,
+    ip_geolocation: Object,
     created_at: Number,
     approval_by: String | null,
     approval_at: Number,

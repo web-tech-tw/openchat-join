@@ -31,6 +31,7 @@ describe("/room", function() {
             .post(to("/"))
             .send({slug: `test-room-${roleName}`})
             .type("form")
+            .set("User-Agent", process.env.TEST_USER_AGENT)
             .set("Accept", "application/json")
             .set("Authorization", utils.getUserTestToken(roleName))
             .expect(expectedCode)
