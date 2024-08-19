@@ -1,6 +1,9 @@
 "use strict";
 // The simple toolbox for fetch visitor information from HTTP request.
 
+// Import isProduction
+const {isProduction} = require("../config");
+
 /**
  * Get IP Address.
  * @module ip_address
@@ -9,6 +12,9 @@
  * @return {string} the IP Address
  */
 function getIPAddress(req) {
+    if (!isProduction()) {
+        return "8.8.8.8";
+    }
     return req?.clientIp || req.ip;
 }
 

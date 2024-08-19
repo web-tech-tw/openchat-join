@@ -21,6 +21,7 @@ const to = utils.urlGlue("/admin-room");
 describe("/", function() {
     const method = (roleName, expectedCode, done) => request(app)
         .get(to("/"))
+        .set("User-Agent", process.env.TEST_USER_AGENT)
         .set("Accept", "application/json")
         .set("Authorization", utils.getUserTestToken(roleName))
         .expect(expectedCode)
