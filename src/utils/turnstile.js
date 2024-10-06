@@ -20,11 +20,12 @@ exports.validResponse = async ({
     const url = "https://challenges.cloudflare.com/turnstile/v0/siteverify";
 
     try {
-        return await axios.post(url, {
+        const result = await axios.post(url, {
             response: turnstileToken,
             secret: turnstileSecret,
             remoteip: ipAddress,
         });
+        return result.data;
     } catch (e) {
         return {
             success: false,
