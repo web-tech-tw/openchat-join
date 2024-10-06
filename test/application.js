@@ -27,7 +27,7 @@ describe("/application", function() {
             // Do create room, no matter if the room already exists
             request(app)
                 .post("/room")
-                .send({slug: "test-room"})
+                .send({slug: "test-room", captcha: "dummy"})
                 .type("form")
                 .set("User-Agent", process.env.TEST_USER_AGENT)
                 .set("Accept", "application/json")
@@ -40,7 +40,7 @@ describe("/application", function() {
     step("request", function(done) {
         request(app)
             .post(to("/"))
-            .send({slug: "test-room"})
+            .send({slug: "test-room", captcha: "dummy"})
             .type("form")
             .set("User-Agent", process.env.TEST_USER_AGENT)
             .set("Accept", "application/json")
@@ -63,7 +63,7 @@ describe("/application", function() {
             database.connection.dropCollection("applications", () => {
                 request(app)
                     .post(to("/"))
-                    .send({slug: "test-room"})
+                    .send({slug: "test-room", captcha: "dummy"})
                     .type("form")
                     .set("User-Agent", process.env.TEST_USER_AGENT)
                     .set("Accept", "application/json")

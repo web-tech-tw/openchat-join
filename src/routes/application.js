@@ -1,5 +1,7 @@
 "use strict";
 
+const {getMust} = require("../config");
+
 // Import useApp, express
 const {useApp, express} = require("../init/express");
 const {StatusCodes} = require("http-status-codes");
@@ -9,6 +11,7 @@ const {useDatabase} = require("../init/database");
 const utilVisitor = require("../utils/visitor");
 const utilNative = require("../utils/native");
 const utilCode = require("../utils/code");
+const utilTurnstile = require("../utils/turnstile");
 
 const schemaApplication = require("../schemas/application");
 const schemaRoom = require("../schemas/room");
@@ -58,6 +61,7 @@ router.get(
 router.post(
     "/",
     middlewareValidator.body("slug").notEmpty(),
+    middlewareValidator.body("captcha").notEmpty(),
     middlewareInspector,
     async (req, res) => {
         const Room = database.model("Room", schemaRoom);
@@ -72,6 +76,18 @@ router.post(
         const ipGeolocation = ipGeoQuery.lookup(ipAddress);
         const codeData = `${roomId}_${ipAddress}|${userAgent}`;
         const applicationId = utilCode.computeHash(codeData, 24);
+
+        const {
+            success: isValidCaptcha,
+        } = await utilTurnstile.validResponse({
+            turnstileToken: req.body.captcha,
+            turnstileSecret: getMust("TURNSTILE_SECRET_KEY"),
+            ipAddress,
+        });
+        if (!isValidCaptcha) {
+            res.sendStatus(StatusCodes.FORBIDDEN);
+            return;
+        }
 
         const Application = database.model(
             "Application", schemaApplication,
