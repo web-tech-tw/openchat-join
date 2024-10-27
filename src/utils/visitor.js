@@ -15,7 +15,7 @@ function getIPAddress(req) {
     if (!isProduction()) {
         return "8.8.8.8";
     }
-    return req?.clientIp || req.ip;
+    return req.ip;
 }
 
 /**
