@@ -11,11 +11,26 @@ const router = newRouter();
 
 router.use(express.urlencoded({extended: true}));
 
-router.get("/", middlewareAccess("openchat"), (_, res) => {
-    const url = process.env.OPENCHAT_ADMIN_ROOM_URL;
-    const password = process.env.OPENCHAT_ADMIN_ROOM_PASSWORD;
-    res.send({url, password});
-});
+router.get(
+    "/",
+    middlewareAccess("openchat"),
+    (_, res) => {
+    // Extract environment variables
+        const {
+            OPENCHAT_ADMIN_ROOM_URL: url,
+            OPENCHAT_ADMIN_ROOM_PASSWORD: password,
+        } = process.env;
+
+        // Prepare data
+        const data = {
+            url,
+            password,
+        };
+
+        // Send response
+        res.send(data);
+    },
+);
 
 // Export routes mapper (function)
 module.exports = () => {

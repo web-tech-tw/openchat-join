@@ -1,8 +1,16 @@
 "use strict";
 
-require("./kernel/init");
+const {
+    USER_AGENT: userAgent,
+} = require("./kernel/init");
 
-const utils = require("./kernel/utils");
+const {
+    print,
+    urlGlue,
+    toTest,
+    toPrepare,
+    getUserTestToken,
+} = require("./kernel/utils");
 
 const request = require("supertest");
 const {step} = require("mocha-steps");
@@ -17,120 +25,100 @@ const app = useApp();
 const database = useDatabase();
 
 require("../src/routes/index")();
-const to = utils.urlGlue("/application");
+const to = urlGlue("/application");
 
 // Define tests
 describe("/application", function() {
-    before(function(done) {
+    before(toPrepare(
         // Reset collection "applications" before test
-        database.connection.dropCollection("applications", () => {
-            // Do create room, no matter if the room already exists
-            request(app)
-                .post("/room")
-                .send({slug: "test-room", captcha: "dummy"})
-                .type("form")
-                .set("User-Agent", process.env.TEST_USER_AGENT)
-                .set("Accept", "application/json")
-                .set("Authorization", utils.getUserTestToken("admin"))
-                .then(() => done())
-                .catch(() => done());
-        });
-    });
+        () => database.connection.dropCollection("applications"),
+        // Do create room, no matter if the room already exists
+        () => request(app).
+            post("/room").
+            set("user-agent", userAgent).
+            set("accept", "application/json").
+            set("authorization", getUserTestToken("admin")).
+            type("form").
+            send({slug: "test-room"}),
+    ));
 
-    step("request", function(done) {
-        request(app)
-            .post(to("/"))
-            .send({slug: "test-room", captcha: "dummy"})
-            .type("form")
-            .set("User-Agent", process.env.TEST_USER_AGENT)
-            .set("Accept", "application/json")
-            .expect(StatusCodes.CREATED)
-            .then((res) => {
-                utils.log(res.body);
-                done();
-            })
-            .catch((e) => {
-                console.error(e);
-                done(e);
-            });
-    });
+    step("request", toTest(async function() {
+        // Do request
+        const response = await request(app).
+            post(to("/")).
+            set("user-agent", userAgent).
+            set("accept", "application/json").
+            set("x-zebra-code", "dummy").
+            type("form").
+            send({slug: "test-room", captcha: "dummy"}).
+            expect(StatusCodes.CREATED);
+
+        // Print response
+        print(response.body);
+    }));
 
     describe("test", function() {
         let code;
 
-        beforeEach(function(done) {
+        beforeEach(toPrepare(
             // Reset collection "applications" before test
-            database.connection.dropCollection("applications", () => {
-                request(app)
-                    .post(to("/"))
-                    .send({slug: "test-room", captcha: "dummy"})
-                    .type("form")
-                    .set("User-Agent", process.env.TEST_USER_AGENT)
-                    .set("Accept", "application/json")
-                    .expect(StatusCodes.CREATED)
-                    .then((res) => {
-                        code = res.body.code;
-                        done();
-                    })
-                    .catch((e) => {
-                        console.error(e);
-                        done(e);
-                    });
-            });
-        });
+            () => database.connection.dropCollection("applications"),
+            // Do create application
+            async () => {
+                // Do request
+                const response = await request(app).
+                    post(to("/")).
+                    set("user-agent", userAgent).
+                    set("accept", "application/json").
+                    set("x-zebra-code", "dummy").
+                    type("form").
+                    send({slug: "test-room", captcha: "dummy"});
 
-        step("get", function(done) {
-            request(app)
-                .get(to("/"))
-                .query({code})
-                .set("User-Agent", process.env.TEST_USER_AGENT)
-                .set("Accept", "application/json")
-                .set("Authorization", utils.getUserTestToken("manager"))
-                .expect(StatusCodes.OK)
-                .then((res) => {
-                    utils.log(res.body);
-                    done();
-                })
-                .catch((e) => {
-                    console.error(e);
-                    done(e);
-                });
-        });
+                // Assign code
+                code = response.body.code;
+            },
+        ));
 
-        step("approval", function(done) {
-            request(app)
-                .patch(to("/"))
-                .query({code})
-                .set("User-Agent", process.env.TEST_USER_AGENT)
-                .set("Accept", "application/json")
-                .set("Authorization", utils.getUserTestToken("manager"))
-                .expect(StatusCodes.NO_CONTENT)
-                .then((res) => {
-                    utils.log(res.body);
-                    done();
-                })
-                .catch((e) => {
-                    console.error(e);
-                    done(e);
-                });
-        });
+        step("get", toTest(async function() {
+            // Do request
+            const response = await request(app).
+                get(to("/")).
+                query({code}).
+                set("user-agent", userAgent).
+                set("accept", "application/json").
+                set("authorization", getUserTestToken("manager")).
+                expect(StatusCodes.OK);
 
-        step("reject", function(done) {
-            request(app)
-                .delete(to("/"))
-                .query({code})
-                .set("User-Agent", process.env.TEST_USER_AGENT)
-                .set("Accept", "application/json")
-                .set("Authorization", utils.getUserTestToken("manager"))
-                .expect(StatusCodes.NO_CONTENT)
-                .then((res) => {
-                    utils.log(res.body);
-                    done();
-                })
-                .catch((e) => {
-                    console.error(e);
-                    done(e);
-                });
-        });
+            // Print response
+            print(response.body);
+        }));
+
+        step("approval", toTest(async function() {
+            // Do request
+            const response = await request(app).
+                patch(to("/")).
+                query({code, state: "true"}).
+                set("user-agent", userAgent).
+                set("accept", "application/json").
+                set("authorization", getUserTestToken("manager")).
+                expect(StatusCodes.NO_CONTENT);
+
+            // Print response
+            print(response.body);
+        }));
+
+        step("reject", toTest(async function() {
+            // Do request
+            const response = await request(app).
+                patch(to("/")).
+                query({code, state: "false"}).
+                set("user-agent", userAgent).
+                set("accept", "application/json").
+                set("authorization", getUserTestToken("manager")).
+                expect(StatusCodes.NO_CONTENT);
+
+            // Print response
+            print(response.body);
+        }));
     });
 });

@@ -1,15 +1,7 @@
 "use strict";
 // The simple toolbox for Node.js
 
-/**
- * Get POSIX Timestamp (second)
- * @module native
- * @function
- * @return {number}
- */
-function getPosixTimestamp() {
-    return Math.floor(new Date().getTime() / 1000);
-}
+const crypto = require("node:crypto");
 
 /**
  * Shortcut for hasOwnProperty with safe.
@@ -20,11 +12,37 @@ function getPosixTimestamp() {
  * @return {boolean}
  */
 function isObjectPropExists(srcObject, propName) {
-    return Object.prototype.hasOwnProperty.call(srcObject, propName);
+    return Object.hasOwn(srcObject, propName);
+}
+
+/**
+ * Generate random code with length.
+ * @param {number} length length of code
+ * @return {string}
+ */
+function generateRandomCode(length) {
+    const maxValue = (10 ** length) - 1;
+    return crypto.
+        randomInt(0, maxValue).
+        toString().
+        padStart(length, "0");
+}
+
+/**
+ * Hash string into sha256 hex.
+ * @param {string} data
+ * @return {string}
+ */
+function sha256hex(data) {
+    return crypto.
+        createHash("sha256").
+        update(data).
+        digest("hex");
 }
 
 // Export (object)
 module.exports = {
-    getPosixTimestamp,
     isObjectPropExists,
+    generateRandomCode,
+    sha256hex,
 };

@@ -1,8 +1,15 @@
 "use strict";
 
-require("./kernel/init");
+const {
+    USER_AGENT: userAgent,
+} = require("./kernel/init");
 
-const utils = require("./kernel/utils");
+const {
+    print,
+    urlGlue,
+    toTest,
+    getUserTestToken,
+} = require("./kernel/utils");
 
 const request = require("supertest");
 const {step} = require("mocha-steps");
@@ -15,34 +22,36 @@ const {useApp} = require("../src/init/express");
 const app = useApp();
 
 require("../src/routes/index")();
-const to = utils.urlGlue("/admin-room");
+const to = urlGlue("/admin-room");
 
 // Define tests
 describe("/", function() {
-    const method = (roleName, expectedCode, done) => request(app)
-        .get(to("/"))
-        .set("User-Agent", process.env.TEST_USER_AGENT)
-        .set("Accept", "application/json")
-        .set("Authorization", utils.getUserTestToken(roleName))
-        .expect(expectedCode)
-        .then((res) => {
-            utils.log(res.body);
-            done();
-        })
-        .catch((e) => {
-            console.error(e);
-            done(e);
-        });
+    // Define request function
+    const doRequest = (roleName, expectedCode) => request(app).
+        get(to("/")).
+        set("user-agent", userAgent).
+        set("accept", "application/json").
+        set("authorization", getUserTestToken(roleName)).
+        expect(expectedCode);
 
-    step("admin", function(done) {
-        method("admin", StatusCodes.OK, done);
-    });
+    step("admin", toTest(async function() {
+        // Do request
+        const response = await doRequest("admin", StatusCodes.OK);
+        // Print response
+        print(response.body);
+    }));
 
-    step("manager", function(done) {
-        method("manager", StatusCodes.OK, done);
-    });
+    step("manager", toTest(async function() {
+        // Do request
+        const response = await doRequest("manager", StatusCodes.OK);
+        // Print response
+        print(response.body);
+    }));
 
-    step("guest", function(done) {
-        method("guest", StatusCodes.FORBIDDEN, done);
-    });
+    step("guest", toTest(async function() {
+        // Do request
+        const response = await doRequest("guest", StatusCodes.FORBIDDEN);
+        // Print response
+        print(response.body);
+    }));
 });

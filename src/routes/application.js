@@ -2,19 +2,16 @@
 
 const {getMust} = require("../config");
 
-// Import useApp, express
-const {useApp, express} = require("../init/express");
+// Import useApp, withAwait, express
+const {useApp, withAwait, express} = require("../init/express");
 const {StatusCodes} = require("http-status-codes");
 
-const {useDatabase} = require("../init/database");
-
 const utilVisitor = require("../utils/visitor");
-const utilNative = require("../utils/native");
 const utilCode = require("../utils/code");
 const utilTurnstile = require("../utils/turnstile");
 
-const schemaApplication = require("../schemas/application");
-const schemaRoom = require("../schemas/room");
+const Application = require("../models/application");
+const Room = require("../models/room");
 
 const middlewareAccess = require("../middleware/access");
 const middlewareInspector = require("../middleware/inspector");
@@ -28,134 +25,131 @@ const router = newRouter();
 
 router.use(express.urlencoded({extended: true}));
 
-const database = useDatabase();
-
 router.get(
     "/",
     middlewareAccess("openchat"),
     middlewareValidator.query("code").notEmpty(),
     middlewareInspector,
-    async (req, res) => {
-        const Application = database.model(
-            "Application", schemaApplication,
-        );
+    withAwait(async (req, res) => {
+        // Extract query
+        const {
+            code,
+        } = req.query;
 
-        const application = await Application.
-            findOne({code: req.query.code}).exec();
+        // Find application
+        const application = await Application.findOne({code}).exec();
         if (!application) {
             res.sendStatus(StatusCodes.NOT_FOUND);
             return;
         }
 
-        if (!application.ip_geolocation) {
-            const {ip_address: ipAddress} = application;
-            const ipGeolocation = ipGeoQuery.lookup(ipAddress);
-            application.ip_geolocation = ipGeolocation;
-            application.save();
-        }
-
+        // Send response
         res.send(application);
-    },
+    }),
 );
 
 router.post(
     "/",
     middlewareValidator.body("slug").notEmpty(),
     middlewareValidator.body("captcha").notEmpty(),
+    middlewareValidator.header("x-zebra-code").notEmpty(),
     middlewareInspector,
-    async (req, res) => {
-        const Room = database.model("Room", schemaRoom);
-        const roomId = utilCode.computeHash(req.body.slug, 24);
-        if (!await Room.findById(roomId).exec()) {
+    withAwait(async (req, res) => {
+        // Extract request body
+        const {
+            slug: roomSlug,
+            captcha: turnstileToken,
+        } = req.body;
+
+        // Extract request header
+        const {
+            "x-zebra-code": zebraCode,
+        } = req.headers;
+
+        // Check room exists
+        if (!await Room.findOne({slug: roomSlug}).exec()) {
             res.sendStatus(StatusCodes.NOT_FOUND);
             return;
         }
 
+        // Fetch visitor information
         const userAgent = utilVisitor.getUserAgent(req);
         const ipAddress = utilVisitor.getIPAddress(req);
         const ipGeolocation = ipGeoQuery.lookup(ipAddress);
-        const codeData = `${roomId}_${ipAddress}|${userAgent}`;
-        const applicationId = utilCode.computeHash(codeData, 24);
 
-        const {
-            success: isValidCaptcha,
-        } = await utilTurnstile.validResponse({
-            turnstileToken: req.body.captcha,
-            turnstileSecret: getMust("TURNSTILE_SECRET_KEY"),
+        // Validate CloudFlare Turnstile
+        const turnstileSecret = getMust("TURNSTILE_SECRET_KEY");
+        const turnstileResult = await utilTurnstile.validResponse({
+            turnstileToken,
+            turnstileSecret,
             ipAddress,
         });
-        if (!isValidCaptcha) {
+        if (!turnstileResult.success) {
             res.sendStatus(StatusCodes.FORBIDDEN);
             return;
         }
 
-        const Application = database.model(
-            "Application", schemaApplication,
-        );
-        const existApplication =
-            await Application.findById(applicationId).exec();
-        if (existApplication) {
-            res.status(StatusCodes.CONFLICT).send(existApplication);
+        // Generate code
+        const data = [roomSlug, userAgent, ipAddress, zebraCode];
+        const code = utilCode.generateCode(data.join("&"));
+
+        // Check application is conflict or not
+        if (await Application.findOne({code}).exec()) {
+            res.sendStatus(StatusCodes.CONFLICT);
             return;
         }
 
-        const code = utilCode.generateCode(codeData);
+        // Create application
         const application = new Application({
-            _id: applicationId,
-            room_id: roomId,
-            user_agent: userAgent,
-            created_at: utilNative.getPosixTimestamp(),
-            ip_address: ipAddress,
-            ip_geolocation: ipGeolocation,
-            code,
+            code, zebraCode, roomSlug, userAgent, ipAddress, ipGeolocation,
         });
 
+        // Save application
+        const appData = (await application.save()).toObject();
+
+        // Send response
         res.
             status(StatusCodes.CREATED).
-            send(await application.save());
-    },
+            send(appData);
+    }),
 );
 
 router.patch(
     "/",
     middlewareAccess("openchat"),
     middlewareValidator.query("code").notEmpty(),
+    middlewareValidator.query("state").isBoolean().notEmpty(),
     middlewareInspector,
-    async (req, res) => {
-        const Application = database.model(
-            "Application", schemaApplication,
-        );
-        const metadata = {
-            approval_by: req.auth.id,
-            approval_at: utilNative.getPosixTimestamp(),
-        };
-        if (await Application.findOneAndUpdate(
-            {code: req.query.code}, metadata,
-        ).exec()) {
-            res.sendStatus(StatusCodes.NO_CONTENT);
-        } else {
-            res.sendStatus(StatusCodes.NOT_FOUND);
-        }
-    },
-);
+    withAwait(async (req, res) => {
+        // Extract query
+        const {
+            code: applicationCode,
+            state: applicationState,
+        } = req.query;
 
-router.delete(
-    "/",
-    middlewareAccess("openchat"),
-    middlewareValidator.query("code").notEmpty(),
-    middlewareInspector,
-    async (req, res) => {
-        const Application = database.model(
-            "Application", schemaApplication,
-        );
-        if (await Application.findOneAndDelete({
-            code: req.query.code,
-        }).exec()) {
-            res.sendStatus(StatusCodes.NO_CONTENT);
-        } else {
+        // Fetch commit data
+        const commitBy = req.auth.id;
+        const commitAt = Date.now();
+        const commitState = applicationState === "true";
+
+        // Update application
+        const application = await Application.findOneAndUpdate(
+            {
+                code: applicationCode,
+            }, {
+                commitBy,
+                commitAt,
+                commitState,
+            },
+        ).exec();
+        if (!application) {
             res.sendStatus(StatusCodes.NOT_FOUND);
+            return;
         }
-    },
+
+        // Send response
+        res.sendStatus(StatusCodes.NO_CONTENT);
+    }),
 );
 
 // Export routes mapper (function)
