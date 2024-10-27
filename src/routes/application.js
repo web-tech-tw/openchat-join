@@ -127,25 +127,32 @@ router.patch(
             state: applicationState,
         } = req.query;
 
+        // Update application
+        const application = await Application.
+            findOne({code: applicationCode}).exec();
+        if (!application) {
+            res.sendStatus(StatusCodes.NOT_FOUND);
+            return;
+        }
+
+        // Check commit is conflict or not
+        if (application.commitState !== null) {
+            res.sendStatus(StatusCodes.CONFLICT);
+            return;
+        }
+
         // Fetch commit data
         const commitBy = req.auth.id;
         const commitAt = Date.now();
         const commitState = applicationState === "true";
 
         // Update application
-        const application = await Application.findOneAndUpdate(
-            {
-                code: applicationCode,
-            }, {
-                commitBy,
-                commitAt,
-                commitState,
-            },
-        ).exec();
-        if (!application) {
-            res.sendStatus(StatusCodes.NOT_FOUND);
-            return;
-        }
+        application.commitBy = commitBy;
+        application.commitAt = commitAt;
+        application.commitState = commitState;
+
+        // Save application
+        await application.save();
 
         // Send response
         res.sendStatus(StatusCodes.NO_CONTENT);
