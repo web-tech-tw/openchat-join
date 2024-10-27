@@ -97,7 +97,7 @@ describe("/application", function() {
             // Do request
             const response = await request(app).
                 patch(to("/")).
-                query({code, state: "true"}).
+                query({code, state: true}).
                 set("user-agent", userAgent).
                 set("accept", "application/json").
                 set("authorization", getUserTestToken("manager")).
@@ -111,7 +111,7 @@ describe("/application", function() {
             // Do request
             const response = await request(app).
                 patch(to("/")).
-                query({code, state: "false"}).
+                query({code, state: false}).
                 set("user-agent", userAgent).
                 set("accept", "application/json").
                 set("authorization", getUserTestToken("manager")).

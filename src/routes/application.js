@@ -105,12 +105,12 @@ router.post(
         });
 
         // Save application
-        const appData = (await application.save()).toObject();
+        await application.save();
 
         // Send response
         res.
             status(StatusCodes.CREATED).
-            send(appData);
+            send({code});
     }),
 );
 

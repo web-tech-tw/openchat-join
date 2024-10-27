@@ -1,8 +1,11 @@
 "use strict";
 
 const mongoose = require("mongoose");
+
 const {Schema} = mongoose;
 const {ObjectId} = Schema.Types;
+
+const IPGeolocation = require("./ip_geolocation");
 
 const schema = new Schema({
     code: {
@@ -27,17 +30,7 @@ const schema = new Schema({
         required: true,
     },
     ipGeolocation: {
-        type: {
-            range: [Number],
-            country: String,
-            region: String,
-            city: String,
-            ll: [Number],
-            metro: Number,
-            area: Number,
-            eu: String,
-            timezone: String,
-        },
+        type: IPGeolocation,
         required: true,
     },
     commitBy: {
