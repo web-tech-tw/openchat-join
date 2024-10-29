@@ -22,10 +22,10 @@ const {useApp} = require("../src/init/express");
 const app = useApp();
 
 require("../src/routes/index")();
-const to = urlGlue("/admin-room");
+const to = urlGlue("/admin-rooms");
 
 // Define tests
-describe("/", function() {
+describe("/admin-rooms", function() {
     // Define request function
     const doRequest = (roleName, expectedCode) => request(app).
         get(to("/")).

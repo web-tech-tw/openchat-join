@@ -147,7 +147,7 @@ router.patch(
         }
 
         // Check commit is conflict or not
-        if (application.commitState !== null) {
+        if (application.commitState) {
             res.sendStatus(StatusCodes.CONFLICT);
             return;
         }

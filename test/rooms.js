@@ -25,10 +25,10 @@ const app = useApp();
 const database = useDatabase();
 
 require("../src/routes/index")();
-const to = urlGlue("/room");
+const to = urlGlue("/rooms");
 
 // Define tests
-describe("/room", function() {
+describe("/rooms", function() {
     before(toPrepare(
         // Reset collection "rooms" before test
         () => database.connection.dropCollection("rooms"),
@@ -37,7 +37,10 @@ describe("/room", function() {
     describe("create", function() {
         const doRequest = (roleName, expectedCode) => request(app).
             post(to("/")).
-            send({slug: `test-room-${roleName}`}).
+            send({
+                label: `Test Room ${roleName}`,
+                slug: `test-room-${roleName}`,
+            }).
             type("form").
             set("user-agent", userAgent).
             set("accept", "application/json").

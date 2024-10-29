@@ -25,21 +25,24 @@ const app = useApp();
 const database = useDatabase();
 
 require("../src/routes/index")();
-const to = urlGlue("/application");
+const to = urlGlue("/applications");
 
 // Define tests
-describe("/application", function() {
+describe("/applications", function() {
     before(toPrepare(
         // Reset collection "applications" before test
         () => database.connection.dropCollection("applications"),
         // Do create room, no matter if the room already exists
         () => request(app).
-            post("/room").
+            post("/rooms").
             set("user-agent", userAgent).
             set("accept", "application/json").
             set("authorization", getUserTestToken("admin")).
             type("form").
-            send({slug: "test-room"}),
+            send({
+                label: "Test Room",
+                slug: "test-room",
+            }),
     ));
 
     step("request", toTest(async function() {
