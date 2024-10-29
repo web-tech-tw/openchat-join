@@ -30,7 +30,7 @@ function computeHash(data, sub = 0) {
 function generateCode(data) {
     const datetime = new Date();
     const dateString = datetime.toLocaleDateString();
-    return computeHash(`${dateString}_${data}`, 6);
+    return computeHash(`${dateString}_${data}`, 8);
 }
 
 module.exports = {
