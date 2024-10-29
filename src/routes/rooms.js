@@ -1,14 +1,10 @@
 "use strict";
 
-// Import useApp, express
-const {useApp, express} = require("../init/express");
+// Import useApp, withAwait, express
+const {useApp, withAwait, express} = require("../init/express");
 const {StatusCodes} = require("http-status-codes");
 
-const {useDatabase} = require("../init/database");
-
-const utilCode = require("../utils/code");
-
-const schemaRoom = require("../schemas/room");
+const Room = require("../models/room");
 
 const middlewareAccess = require("../middleware/access");
 const middlewareInspector = require("../middleware/inspector");
@@ -20,27 +16,35 @@ const router = newRouter();
 
 router.use(express.urlencoded({extended: true}));
 
-const database = useDatabase();
-
 router.post(
     "/",
     middlewareAccess("admin"),
+    middlewareValidator.body("label").isString().notEmpty(),
     middlewareValidator.body("slug").isString().notEmpty(),
     middlewareInspector,
-    async (req, res) => {
-        const roomId = utilCode.computeHash(req.body.slug, 24);
+    withAwait(async (req, res) => {
+        // Extract request body
+        const {
+            label: roomLabel,
+            slug: roomSlug,
+        } = req.body;
 
-        const Room = database.model("Room", schemaRoom);
-        if (await Room.findOne({_id: roomId}).exec()) {
+        // Check if the room already exists
+        if (await Room.findOne({slug: roomSlug}).exec()) {
             res.sendStatus(StatusCodes.CONFLICT);
             return;
         }
 
-        const metadata = {_id: roomId, slug: req.body.slug};
-        const room = await (new Room(metadata)).save();
+        // Create a new room
+        const room = new Room({
+            label: roomLabel,
+            slug: roomSlug,
+        });
+        await room.save();
 
-        res.status(StatusCodes.CREATED).send(room);
-    },
+        // Send response
+        res.sendStatus(StatusCodes.CREATED);
+    }),
 );
 
 // Export routes mapper (function)
@@ -49,5 +53,5 @@ module.exports = () => {
     const app = useApp();
 
     // Mount the router
-    app.use("/room", router);
+    app.use("/rooms", router);
 };

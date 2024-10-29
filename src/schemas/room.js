@@ -1,10 +1,19 @@
 "use strict";
 
 const mongoose = require("mongoose");
+const {Schema} = mongoose;
 
-const Schema = mongoose.Schema;
-
-module.exports = new Schema({
-    id: String,
-    slug: String,
+const schema = new Schema({
+    label: {
+        type: String,
+        required: true,
+        unique: true,
+    },
+    slug: {
+        type: String,
+        required: true,
+        unique: true,
+    },
 });
+
+module.exports = schema;

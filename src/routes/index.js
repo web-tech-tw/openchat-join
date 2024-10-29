@@ -2,9 +2,9 @@
 
 // Routes
 const routes = [
-    require("./admin_room"),
-    require("./application"),
-    require("./room"),
+    require("./admin_rooms"),
+    require("./applications"),
+    require("./rooms"),
 ];
 
 // Load routes

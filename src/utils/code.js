@@ -1,10 +1,14 @@
 "use strict";
 
 // Import createHash
-const {createHash} = require("node:crypto");
+const {createHmac} = require("node:crypto");
 
 // Import useSecret
 const {useSecret} = require("../init/secret");
+
+// Define hmac function - SHA256
+const hmac256hex = (data, key) =>
+    createHmac("sha256", key).update(data).digest("hex");
 
 /**
  * Hash data.
@@ -14,10 +18,8 @@ const {useSecret} = require("../init/secret");
  */
 function computeHash(data, sub = 0) {
     const secret = useSecret();
-    const hashHex = createHash("sha256").
-        update(`${secret}_${data}`).
-        digest("hex");
-    return sub ? hashHex.substring(0, sub) : hashHex;
+    const hashHex = hmac256hex(data, secret);
+    return hashHex.substring(0, sub);
 }
 
 /**

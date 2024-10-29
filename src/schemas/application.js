@@ -2,17 +2,51 @@
 
 const mongoose = require("mongoose");
 
-const Schema = mongoose.Schema;
-const ObjectId = Schema.ObjectId;
+const {Schema} = mongoose;
+const {ObjectId} = Schema.Types;
 
-module.exports = new Schema({
-    id: ObjectId,
-    code: String,
-    room_id: String,
-    user_agent: String,
-    ip_address: String,
-    ip_geolocation: Object,
-    created_at: Number,
-    approval_by: String | null,
-    approval_at: Number,
+const IPGeolocation = require("./ip_geolocation");
+
+const schema = new Schema({
+    code: {
+        type: String,
+        required: true,
+        unique: true,
+    },
+    zebraCode: {
+        type: String,
+        required: true,
+    },
+    roomSlug: {
+        type: String,
+        required: true,
+    },
+    userAgent: {
+        type: String,
+        required: true,
+    },
+    ipAddress: {
+        type: String,
+        required: true,
+    },
+    ipGeolocation: {
+        type: IPGeolocation,
+        required: true,
+    },
+    commitBy: {
+        type: ObjectId,
+        required: false,
+    },
+    commitAt: {
+        type: Date,
+        required: false,
+    },
+    commitState: {
+        type: Boolean,
+        required: false,
+    },
+}, {
+    timestamps: true,
 });
+
+module.exports = schema;

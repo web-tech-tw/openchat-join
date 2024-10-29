@@ -76,12 +76,13 @@ function getEnabled(key) {
  * @module config
  * @function
  * @param {string} key the key
- * @param {string} separator [separator=,] the separator.
+ * @param {string} [separator=,] the separator.
  * @return {array} the array value
  */
 function getSplited(key, separator=",") {
     return getMust(key).
         split(separator).
+        filter((s) => s).
         map((s) => s.trim());
 }
 
