@@ -106,7 +106,10 @@ router.post(
 
         // Check application is conflict or not
         if (await Application.findOne({code}).exec()) {
-            res.sendStatus(StatusCodes.CONFLICT);
+            // Send response
+            res.
+                status(StatusCodes.CONFLICT).
+                send({code});
             return;
         }
 
