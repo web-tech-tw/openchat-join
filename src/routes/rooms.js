@@ -19,11 +19,13 @@ router.use(express.urlencoded({extended: true}));
 router.post(
     "/",
     middlewareAccess("admin"),
+    middlewareValidator.body("label").isString().notEmpty(),
     middlewareValidator.body("slug").isString().notEmpty(),
     middlewareInspector,
     withAwait(async (req, res) => {
         // Extract request body
         const {
+            label: roomLabel,
             slug: roomSlug,
         } = req.body;
 
@@ -35,6 +37,7 @@ router.post(
 
         // Create a new room
         const room = new Room({
+            label: roomLabel,
             slug: roomSlug,
         });
         await room.save();
@@ -50,5 +53,5 @@ module.exports = () => {
     const app = useApp();
 
     // Mount the router
-    app.use("/room", router);
+    app.use("/rooms", router);
 };

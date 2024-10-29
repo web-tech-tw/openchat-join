@@ -43,8 +43,19 @@ router.get(
             return;
         }
 
+        // Prepare data
+        const appData = {
+            ...application.toObject(),
+            roomLabel: null,
+        };
+
+        // Fetch room label
+        const {roomSlug} = application;
+        const room = await Room.findOne({slug: roomSlug}).exec();
+        appData.roomLabel = room?.label ?? "Unknown";
+
         // Send response
-        res.send(application);
+        res.send(appData);
     }),
 );
 
@@ -165,5 +176,5 @@ module.exports = () => {
     const app = useApp();
 
     // Mount the router
-    app.use("/application", router);
+    app.use("/applications", router);
 };

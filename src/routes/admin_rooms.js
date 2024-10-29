@@ -38,5 +38,5 @@ module.exports = () => {
     const app = useApp();
 
     // Mount the router
-    app.use("/admin-room", router);
+    app.use("/admin-rooms", router);
 };
