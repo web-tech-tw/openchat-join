@@ -202,6 +202,12 @@ describe("/applications", function() {
             assert.ok(stats.graphEdges >= 1);
             assert.ok(nodes.every((node) => node.clusterSize === 3));
             assert.ok(nodes.every((node) => node.riskScore > 0));
+            // The device relation only appears with a zebra or ip relation
+            assert.ok(response.body.edges.every((edge) =>
+                !edge.relations.includes("device") ||
+                edge.relations.includes("zebra") ||
+                edge.relations.includes("ip"),
+            ));
 
             // Print response
             print(response.body);

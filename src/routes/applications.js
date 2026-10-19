@@ -257,15 +257,33 @@ router.get(
             return device;
         });
 
-        // Aggregate the pair edges from each dimension
+        // Aggregate the pair edges from each identity dimension,
+        // the device fingerprint never creates an edge by itself,
+        // because the coarse device family is easy to collide.
         const relationWeights = {
             zebra: 3,
             ip: 2,
             subnet: 1,
-            device: 1.5,
         };
         const edgeMap = new Map();
+        const addEdge = (source, target, relation, weight) => {
+            const pairKey = `${source}-${target}`;
+            if (!edgeMap.has(pairKey)) {
+                edgeMap.set(pairKey, {
+                    source,
+                    target,
+                    relations: [],
+                    weight: 0,
+                });
+            }
+            const edge = edgeMap.get(pairKey);
+            edge.relations.push(relation);
+            edge.weight += weight;
+        };
         for (const [relation, groupMap] of Object.entries(groups)) {
+            if (relation === "device") {
+                continue;
+            }
             const weight = relationWeights[relation];
             for (const indexes of groupMap.values()) {
                 if (indexes.length < 2) {
@@ -273,20 +291,23 @@ router.get(
                 }
                 for (let i = 0; i < indexes.length; i++) {
                     for (let j = i + 1; j < indexes.length; j++) {
-                        const pairKey = `${indexes[i]}-${indexes[j]}`;
-                        if (!edgeMap.has(pairKey)) {
-                            edgeMap.set(pairKey, {
-                                source: indexes[i],
-                                target: indexes[j],
-                                relations: [],
-                                weight: 0,
-                            });
-                        }
-                        const edge = edgeMap.get(pairKey);
-                        edge.relations.push(relation);
-                        edge.weight += weight;
+                        addEdge(indexes[i], indexes[j], relation, weight);
                     }
                 }
+            }
+        }
+
+        // Reinforce the pairs which already share a zebra or an ip,
+        // the same device family only counts as supporting evidence
+        for (const edge of edgeMap.values()) {
+            const sharesIdentity = edge.relations.includes("zebra") ||
+                edge.relations.includes("ip");
+            if (!sharesIdentity) {
+                continue;
+            }
+            if (parsedDevices[edge.source] === parsedDevices[edge.target]) {
+                edge.relations.push("device");
+                edge.weight += 1;
             }
         }
         const edges = [...edgeMap.values()];
