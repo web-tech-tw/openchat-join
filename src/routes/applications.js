@@ -9,6 +9,7 @@ const {StatusCodes} = require("http-status-codes");
 const utilVisitor = require("../utils/visitor");
 const utilCode = require("../utils/code");
 const utilTurnstile = require("../utils/turnstile");
+const utilFingerprint = require("../utils/fingerprint");
 
 const Application = require("../models/application");
 const Room = require("../models/room");
@@ -56,6 +57,371 @@ router.get(
 
         // Send response
         res.send(appData);
+    }),
+);
+
+/**
+ * Build the room slug to label mapper.
+ * @param {Array<object>} applications the applications
+ * @return {Promise<function(string): string>}
+ */
+async function useRoomLabelMapper(applications) {
+    const roomSlugs = [...new Set(
+        applications.map((a) => a.roomSlug).filter(Boolean),
+    )];
+    const rooms = await Room.
+        find({slug: {$in: roomSlugs}}).
+        exec();
+    const labelMap = new Map(rooms.map((room) => [room.slug, room.label]));
+    return (slug) => labelMap.get(slug) ?? "Unknown";
+}
+
+/**
+ * Build the commit state filter from the state query.
+ * @param {string|undefined} state the state query
+ * @return {object} the mongoose filter of commitState
+ */
+function useStateFilter(state) {
+    if (state === "approved") {
+        return {commitState: true};
+    }
+    if (state === "rejected") {
+        return {commitState: false};
+    }
+    if (state === "pending") {
+        return {commitState: null};
+    }
+    return {};
+}
+
+/**
+ * Compute the subnet of an IP address,
+ * the last part is dropped for IPv4, and
+ * the last 4 groups are dropped for IPv6.
+ * @param {string} ipAddress the IP address
+ * @return {string} the subnet
+ */
+function getSubnet(ipAddress) {
+    if (/^[0-9.]+$/.test(ipAddress)) {
+        return ipAddress.split(".").slice(0, 3).join(".");
+    }
+    if (/^[0-9a-fA-F:]+$/.test(ipAddress)) {
+        return ipAddress.split(":").slice(0, 4).join(":");
+    }
+    return ipAddress;
+}
+
+/**
+ * Fetch the application overview stats.
+ * @return {Promise<object>} the stats
+ */
+async function fetchStats() {
+    const [total, pending, approved, rejected] = await Promise.all([
+        Application.countDocuments({}).exec(),
+        Application.countDocuments({commitState: null}).exec(),
+        Application.countDocuments({commitState: true}).exec(),
+        Application.countDocuments({commitState: false}).exec(),
+    ]);
+    return {total, pending, approved, rejected};
+}
+
+router.get(
+    "/list",
+    middlewareAccess("openchat"),
+    middlewareValidator.query("room").optional({checkFalsy: true}).isString(),
+    middlewareValidator.
+        query("state").
+        optional({checkFalsy: true}).
+        isIn(["pending", "approved", "rejected"]),
+    middlewareValidator.
+        query("limit").
+        optional({checkFalsy: true}).
+        isInt({min: 1, max: 500}),
+    middlewareValidator.
+        query("offset").
+        optional({checkFalsy: true}).
+        isInt({min: 0}),
+    middlewareInspector,
+    withAwait(async (req, res) => {
+        // Extract query
+        const {
+            room,
+            state,
+        } = req.query;
+        const limit = Number(req.query.limit) || 100;
+        const offset = Number(req.query.offset) || 0;
+
+        // Build filter
+        const filter = {
+            ...useStateFilter(state),
+        };
+        if (room) {
+            filter.roomSlug = room;
+        }
+
+        // Fetch applications
+        const [total, applications, stats] = await Promise.all([
+            Application.countDocuments(filter).exec(),
+            Application.
+                find(filter).
+                sort({createdAt: -1}).
+                skip(offset).
+                limit(limit).
+                exec(),
+            fetchStats(),
+        ]);
+
+        // Prepare data
+        const roomLabelMapper = await useRoomLabelMapper(applications);
+        const items = applications.map((application) => {
+            const {userAgent} = application;
+            return {
+                ...application.toObject(),
+                device: utilFingerprint.parseUserAgent(userAgent),
+                roomLabel: roomLabelMapper(application.roomSlug),
+            };
+        });
+
+        // Send response
+        res.send({
+            total,
+            stats,
+            limit,
+            offset,
+            applications: items,
+        });
+    }),
+);
+
+router.get(
+    "/graph",
+    middlewareAccess("openchat"),
+    middlewareValidator.query("room").optional({checkFalsy: true}).isString(),
+    middlewareValidator.
+        query("state").
+        optional({checkFalsy: true}).
+        isIn(["pending", "approved", "rejected"]),
+    middlewareValidator.
+        query("limit").
+        optional({checkFalsy: true}).
+        isInt({min: 1, max: 2000}),
+    middlewareInspector,
+    withAwait(async (req, res) => {
+        // Extract query
+        const {
+            room,
+            state,
+        } = req.query;
+        const limit = Number(req.query.limit) || 500;
+
+        // Build filter
+        const filter = {
+            ...useStateFilter(state),
+        };
+        if (room) {
+            filter.roomSlug = room;
+        }
+
+        // Fetch applications
+        const applications = await Application.
+            find(filter).
+            sort({createdAt: -1}).
+            limit(limit).
+            exec();
+
+        // Group the indexes by each relation dimension
+        const groups = {
+            zebra: new Map(),
+            ip: new Map(),
+            subnet: new Map(),
+            device: new Map(),
+        };
+        const parsedDevices = applications.map((application, index) => {
+            const {zebraCode, ipAddress, userAgent} = application;
+            const device = utilFingerprint.getDeviceFingerprint(userAgent);
+            const groupEntries = [
+                [groups.zebra, zebraCode],
+                [groups.ip, ipAddress],
+                [groups.subnet, getSubnet(ipAddress)],
+                [groups.device, device],
+            ];
+            for (const [groupMap, value] of groupEntries) {
+                if (!value) {
+                    continue;
+                }
+                if (!groupMap.has(value)) {
+                    groupMap.set(value, []);
+                }
+                groupMap.get(value).push(index);
+            }
+            return device;
+        });
+
+        // Aggregate the pair edges from each dimension
+        const relationWeights = {
+            zebra: 3,
+            ip: 2,
+            subnet: 1,
+            device: 1.5,
+        };
+        const edgeMap = new Map();
+        for (const [relation, groupMap] of Object.entries(groups)) {
+            const weight = relationWeights[relation];
+            for (const indexes of groupMap.values()) {
+                if (indexes.length < 2) {
+                    continue;
+                }
+                for (let i = 0; i < indexes.length; i++) {
+                    for (let j = i + 1; j < indexes.length; j++) {
+                        const pairKey = `${indexes[i]}-${indexes[j]}`;
+                        if (!edgeMap.has(pairKey)) {
+                            edgeMap.set(pairKey, {
+                                source: indexes[i],
+                                target: indexes[j],
+                                relations: [],
+                                weight: 0,
+                            });
+                        }
+                        const edge = edgeMap.get(pairKey);
+                        edge.relations.push(relation);
+                        edge.weight += weight;
+                    }
+                }
+            }
+        }
+        const edges = [...edgeMap.values()];
+
+        // Union-find the clusters over edges
+        const nodeCount = applications.length;
+        const clusterRoots = Array.from({length: nodeCount}, (_, i) => i);
+        const findRoot = (index) => {
+            let root = index;
+            while (clusterRoots[root] !== root) {
+                root = clusterRoots[root];
+            }
+            return root;
+        };
+        for (const edge of edges) {
+            const sourceRoot = findRoot(edge.source);
+            const targetRoot = findRoot(edge.target);
+            if (sourceRoot !== targetRoot) {
+                clusterRoots[targetRoot] = sourceRoot;
+            }
+        }
+
+        // Aggregate the incident weight of each node
+        const linkWeights = Array.from({length: nodeCount}, () => 0);
+        for (const edge of edges) {
+            linkWeights[edge.source] += edge.weight;
+            linkWeights[edge.target] += edge.weight;
+        }
+
+        // Prepare cluster information
+        const clusterInfos = new Map();
+        for (let index = 0; index < nodeCount; index++) {
+            const root = findRoot(index);
+            if (!clusterInfos.has(root)) {
+                clusterInfos.set(root, {
+                    indexes: [],
+                    rooms: new Set(),
+                    timestamps: [],
+                });
+            }
+            const clusterInfo = clusterInfos.get(root);
+            clusterInfo.indexes.push(index);
+            clusterInfo.rooms.add(applications[index].roomSlug);
+            clusterInfo.timestamps.push(applications[index].createdAt);
+            clusterInfo.weight = (clusterInfo.weight || 0) +
+                linkWeights[index];
+        }
+
+        // Prepare data
+        const roomLabelMapper = await useRoomLabelMapper(applications);
+        const clusterList = [...clusterInfos.entries()];
+
+        // Prepare the risk level of each cluster
+        const clusterRiskLevels = new Map(clusterList.map(([root, info]) => {
+            const size = info.indexes.length;
+            const multiRoom = info.rooms.size > 1;
+            const spread = Math.max(...info.timestamps.map(
+                (time) => time.getTime(),
+            )) - Math.min(...info.timestamps.map(
+                (time) => time.getTime(),
+            ));
+            const burst = size >= 3 && spread <= 10 * 60 * 1000;
+            const riskScore = info.weight || 0;
+            const riskLevel = (
+                size >= 5 ||
+                (multiRoom && riskScore >= 6) ||
+                burst
+            ) ? "high" : (size >= 2 ? "medium" : "low");
+            return [root, {riskLevel, multiRoom, burst}];
+        }));
+
+        // Prepare the node data
+        const nodes = applications.map((application, index) => {
+            const root = findRoot(index);
+            const clusterInfo = clusterInfos.get(root);
+            const {riskLevel, multiRoom, burst} = clusterRiskLevels.get(root);
+            return {
+                code: application.code,
+                roomSlug: application.roomSlug,
+                roomLabel: roomLabelMapper(application.roomSlug),
+                zebraCode: application.zebraCode,
+                ipAddress: application.ipAddress,
+                ipGeolocation: application.ipGeolocation,
+                device: parsedDevices[index],
+                createdAt: application.createdAt,
+                commitState: application.commitState,
+                commitAt: application.commitAt,
+                commitBy: application.commitBy,
+                clusterId: root,
+                clusterSize: clusterInfo.indexes.length,
+                clusterMultiRoom: multiRoom,
+                clusterBurst: burst,
+                riskScore: linkWeights[index],
+                riskLevel,
+            };
+        });
+
+        // Prepare the cluster data
+        const clusters = clusterList.
+            filter(([, info]) => info.indexes.length > 1).
+            map(([root, info]) => {
+                const {riskLevel, multiRoom, burst} = clusterRiskLevels.
+                    get(root);
+                return {
+                    id: root,
+                    size: info.indexes.length,
+                    rooms: [...info.rooms],
+                    codes: info.indexes.map(
+                        (index) => applications[index].code,
+                    ),
+                    riskLevel,
+                    flags: [
+                        ...(multiRoom ? ["multiRoom"] : []),
+                        ...(burst ? ["burst"] : []),
+                    ],
+                };
+            });
+
+        // Send response
+        res.send({
+            nodes,
+            edges: edges.map((edge) => ({
+                ...edge,
+                source: nodes[edge.source].code,
+                target: nodes[edge.target].code,
+            })),
+            clusters,
+            stats: {
+                ...await fetchStats(),
+                graphNodes: nodeCount,
+                graphEdges: edges.length,
+                graphClusters: clusters.length,
+                highRisk: clusters.filter((c) => c.riskLevel === "high").length,
+            },
+        });
     }),
 );
 
