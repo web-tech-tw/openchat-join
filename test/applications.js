@@ -155,16 +155,58 @@ describe("/applications", function() {
                 expect(StatusCodes.OK);
 
             // Check the response
-            const {total, stats, applications} = response.body;
+            const {total, stats, hasMore, applications} = response.body;
             assert.strictEqual(total, 3);
             assert.strictEqual(stats.total, 3);
             assert.strictEqual(stats.pending, 3);
             assert.strictEqual(applications.length, 3);
+            assert.strictEqual(hasMore, false);
+            assert.strictEqual(response.body.nextCursor, null);
             assert.ok(applications[0].roomLabel);
             assert.ok(applications[0].device.browser);
 
             // Print response
             print(response.body);
+        }));
+
+        step("list with cursor paging", toTest(async function() {
+            // Fetch the first page
+            const firstResponse = await request(app).
+                get(to("/list")).
+                query({limit: 2}).
+                set("user-agent", userAgent).
+                set("accept", "application/json").
+                set("authorization", getUserTestToken("manager")).
+                expect(StatusCodes.OK);
+
+            // Check the first page
+            const {total, hasMore, nextCursor} = firstResponse.body;
+            const {applications} = firstResponse.body;
+            assert.strictEqual(total, 3);
+            assert.strictEqual(applications.length, 2);
+            assert.strictEqual(hasMore, true);
+            assert.ok(nextCursor);
+
+            // Fetch the second page with the cursor
+            const secondResponse = await request(app).
+                get(to("/list")).
+                query({limit: 2, cursor: nextCursor}).
+                set("user-agent", userAgent).
+                set("accept", "application/json").
+                set("authorization", getUserTestToken("manager")).
+                expect(StatusCodes.OK);
+
+            // Check the second page
+            assert.strictEqual(secondResponse.body.applications.length, 1);
+            assert.strictEqual(secondResponse.body.hasMore, false);
+            assert.strictEqual(secondResponse.body.nextCursor, null);
+            assert.notStrictEqual(
+                secondResponse.body.applications[0].code,
+                applications[0].code,
+            );
+
+            // Print response
+            print(secondResponse.body);
         }));
 
         step("list with state filter", toTest(async function() {

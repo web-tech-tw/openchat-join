@@ -136,20 +136,17 @@ router.get(
     middlewareValidator.
         query("limit").
         optional({checkFalsy: true}).
-        isInt({min: 1, max: 500}),
-    middlewareValidator.
-        query("offset").
-        optional({checkFalsy: true}).
-        isInt({min: 0}),
+        isInt({min: 1, max: 200}),
+    middlewareValidator.query("cursor").optional({checkFalsy: true}).isString(),
     middlewareInspector,
     withAwait(async (req, res) => {
         // Extract query
         const {
             room,
             state,
+            cursor,
         } = req.query;
         const limit = Number(req.query.limit) || 100;
-        const offset = Number(req.query.offset) || 0;
 
         // Build filter
         const filter = {
@@ -159,17 +156,53 @@ router.get(
             filter.roomSlug = room;
         }
 
-        // Fetch applications
-        const [total, applications, stats] = await Promise.all([
+        // The cursor only narrows the page position,
+        // the total counts the whole filtered set
+        const pageFilter = {
+            ...filter,
+        };
+
+        // Decode the cursor (base64url of {t: createdAt, i: _id})
+        if (cursor) {
+            try {
+                const decoded = JSON.
+                    parse(Buffer.from(cursor, "base64url").toString("utf8"));
+                const cursorTime = new Date(decoded.t);
+                const cursorId = String(decoded.i || "");
+                if (isNaN(cursorTime.getTime()) || !cursorId) {
+                    throw new Error("invalid cursor");
+                }
+                pageFilter.$or = [
+                    {createdAt: {$lt: cursorTime}},
+                    {createdAt: {$eq: cursorTime}, _id: {$lt: cursorId}},
+                ];
+            } catch (error) {
+                res.sendStatus(StatusCodes.BAD_REQUEST);
+                return;
+            }
+        }
+
+        // Fetch one extra item to detect the next page
+        const [total, fetched, stats] = await Promise.all([
             Application.countDocuments(filter).exec(),
             Application.
-                find(filter).
-                sort({createdAt: -1}).
-                skip(offset).
-                limit(limit).
+                find(pageFilter).
+                sort({createdAt: -1, _id: -1}).
+                limit(limit + 1).
                 exec(),
             fetchStats(),
         ]);
+
+        // Slice the page and build the next cursor
+        const hasMore = fetched.length > limit;
+        const applications = hasMore ? fetched.slice(0, limit) : fetched;
+        let nextCursor = null;
+        if (hasMore) {
+            const last = applications[applications.length - 1];
+            nextCursor = Buffer.
+                from(JSON.stringify({t: last.createdAt, i: last.id})).
+                toString("base64url");
+        }
 
         // Prepare data
         const roomLabelMapper = await useRoomLabelMapper(applications);
@@ -187,7 +220,8 @@ router.get(
             total,
             stats,
             limit,
-            offset,
+            hasMore,
+            nextCursor,
             applications: items,
         });
     }),
