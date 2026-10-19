@@ -30,3 +30,5 @@ coverage
 
 # Lock file
 package-lock.json
+# graphify analysis output
+graphify-out/
