@@ -138,6 +138,7 @@ router.get(
         optional({checkFalsy: true}).
         isInt({min: 1, max: 200}),
     middlewareValidator.query("cursor").optional({checkFalsy: true}).isString(),
+    middlewareValidator.query("codes").optional({checkFalsy: true}).isString(),
     middlewareInspector,
     withAwait(async (req, res) => {
         // Extract query
@@ -145,6 +146,7 @@ router.get(
             room,
             state,
             cursor,
+            codes,
         } = req.query;
         const limit = Number(req.query.limit) || 100;
 
@@ -154,6 +156,9 @@ router.get(
         };
         if (room) {
             filter.roomSlug = room;
+        }
+        if (codes) {
+            filter.code = {$in: codes.split(",")};
         }
 
         // The cursor only narrows the page position,

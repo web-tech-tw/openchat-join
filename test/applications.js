@@ -227,6 +227,34 @@ describe("/applications", function() {
             print(response.body);
         }));
 
+        step("list with codes filter", toTest(async function() {
+            // Fetch one code from the list
+            const listResponse = await request(app).
+                get(to("/list")).
+                set("user-agent", userAgent).
+                set("accept", "application/json").
+                set("authorization", getUserTestToken("manager")).
+                expect(StatusCodes.OK);
+            const code = listResponse.body.applications[0].code;
+
+            // Do request
+            const response = await request(app).
+                get(to("/list")).
+                query({codes: `${code},not-exists-code`}).
+                set("user-agent", userAgent).
+                set("accept", "application/json").
+                set("authorization", getUserTestToken("manager")).
+                expect(StatusCodes.OK);
+
+            // Check the response
+            assert.strictEqual(response.body.total, 1);
+            assert.strictEqual(response.body.applications.length, 1);
+            assert.strictEqual(response.body.applications[0].code, code);
+
+            // Print response
+            print(response.body);
+        }));
+
         step("graph", toTest(async function() {
             // Do request
             const response = await request(app).
