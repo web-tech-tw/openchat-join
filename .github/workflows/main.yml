@@ -26,10 +26,8 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v5
 
-      - name: Specific Node.js version
-        uses: actions/setup-node@v4
-        with:
-          node-version: 20
+      - name: Set up Bun
+        uses: oven-sh/setup-bun@v2
 
       - name: Start MongoDB
         uses: supercharge/mongodb-github-action@1.12.1
@@ -42,13 +40,13 @@ jobs:
           sed -i "s/mongo\:27017/127.0.0.1\:27017/g" .env
 
       - name: Generate new secret
-        run: npm run new-secret
+        run: bun run new-secret
 
       - name: Install dependencies
-        run: npm install
+        run: bun install
 
-      - name: Run all Node.js tests
-        run: npm run test
+      - name: Run all tests
+        run: bun test
 
   build-and-push-image:
     name: Build and publish a Docker image

@@ -1,19 +1,23 @@
-FROM node:20-alpine
+FROM oven/bun:alpine
 
-ENV RUNTIME_ENV=container
+ENV TRUST_PROXY="uniquelocal"
+ENV HTTP_HOSTNAME="0.0.0.0"
+ENV RUNTIME_ENV="container"
 
-RUN adduser -u 3000 -D recv
+RUN addgroup -g 3000 join && \
+    adduser -HD -u 3000 -G join -h /app join
 
-RUN mkdir -p /.npm /workplace
-WORKDIR /workplace
-ADD . /workplace
-
-RUN chown -R \
-    3000:3000 \
-    /.npm /workplace
+WORKDIR /app
+RUN chown 3000:3000 /app
 
 USER 3000
-RUN npm install
+
+COPY --chown=3000:3000 package.json bun.lock ./
+RUN bun install --production
+
+COPY --chown=3000:3000 . .
 
 EXPOSE 3000
-CMD ["npm", "start"]
+HEALTHCHECK --interval=30s --timeout=3s \
+  CMD wget --no-verbose --tries=1 --spider http://localhost:3000/robots.txt || exit 1
+CMD ["bun", "start"]

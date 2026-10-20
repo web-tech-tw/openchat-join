@@ -1,15 +1,16 @@
 {
-	"name": "Node.js & Mongo DB",
+	"name": "Bun & MongoDB",
 	"dockerComposeFile": "docker-compose.yml",
 	"service": "app",
 	"workspaceFolder": "/workspaces/${localWorkspaceFolderBasename}",
 	"customizations": {
 		"vscode": {
 			"extensions": [
-				"mongodb.mongodb-vscode"
+				"mongodb.mongodb-vscode",
+				"dbaeumer.vscode-eslint"
 			]
 		}
 	},
-	"forwardPorts": [3000, 3500],
-	"postCreateCommand": "npm install"
+	"forwardPorts": [3000],
+	"postCreateCommand": "bun install"
 }

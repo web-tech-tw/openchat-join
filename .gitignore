@@ -32,3 +32,6 @@ coverage
 package-lock.json
 # graphify analysis output
 graphify-out/
+
+# TypeScript build info
+tsconfig.tsbuildinfo
